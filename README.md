@@ -1,5 +1,7 @@
 # data-platform
 
+[![ci](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
+
 End-to-end data platform for a simulated Thai e-commerce/logistics company:
 daily order ingestion with realistically dirty data, dbt warehouse modeling,
 payment reconciliation, Airflow orchestration — all runnable locally at zero

@@ -1,5 +1,8 @@
-duckdb>=1.0
-pandas>=2.0
-pytest>=8.0
-ruff>=0.4
-dbt-duckdb>=1.8
+# Pinned to the exact versions the platform is tested against.
+# (pandas 3.0 changed tz-aware datetime resolution to µs and broke an earlier
+# build — see ADR-004 / git history. Unpinned ranges let CI drift; these don't.)
+duckdb==1.5.4
+pandas==3.0.3
+pytest==9.1.1
+ruff==0.15.20
+dbt-duckdb==1.10.1

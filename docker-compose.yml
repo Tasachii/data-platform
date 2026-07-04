@@ -2,6 +2,10 @@
 # The repo is mounted at /opt/airflow/repo — DAGs, pipeline code, dbt project,
 # raw files and the DuckDB warehouse all live there, same layout as local dev.
 #
+# SECURITY: admin/admin and airflow/airflow below are throwaway credentials
+# for the LOCAL demo only. Never deploy this compose file as-is — a real
+# deployment injects secrets from the environment or a secret manager.
+#
 #   docker compose up -d           # UI at http://localhost:8080 (admin/admin)
 #   docker compose run --rm airflow-scheduler \
 #       airflow dags test orders_daily 2026-06-15   # run one full DAG in-process
