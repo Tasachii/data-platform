@@ -121,6 +121,11 @@ def parse_dates(args: argparse.Namespace) -> list[date]:
     if args.date:
         return [args.date]
     if args.start and args.end:
+        if args.start > args.end:
+            raise SystemExit(
+                f"--start {args.start} is after --end {args.end}; "
+                "a reversed range would silently ingest nothing"
+            )
         n = (args.end - args.start).days
         return [args.start + timedelta(days=i) for i in range(n + 1)]
     raise SystemExit("specify --all, --date, or --start/--end")
