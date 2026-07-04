@@ -1,0 +1,5 @@
+duckdb>=1.0
+pandas>=2.0
+pytest>=8.0
+ruff>=0.4
+dbt-duckdb>=1.8
