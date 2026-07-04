@@ -54,7 +54,9 @@ def build_report() -> str:
     channels = q("""
         SELECT channel, SUM(net_orders), ROUND(SUM(net_amount), 2)
         FROM marts.fct_daily_orders GROUP BY 1 ORDER BY 3 DESC""")
-    refunds = q("SELECT * FROM marts.fct_refund_analysis")
+    # Presentation order lives in the query, never the table: a bare SELECT *
+    # follows the aggregate's hash order, which reshuffles between runs.
+    refunds = q("SELECT * FROM marts.fct_refund_analysis ORDER BY refund_rate_pct DESC, category")
     rejected = q("""
         SELECT reject_reason, count(*) FROM staging.rejected_orders
         GROUP BY 1 ORDER BY 2 DESC""")
