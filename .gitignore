@@ -19,6 +19,12 @@ logs/
 airflow/logs/
 airflow/plugins/
 
+# Local tool state (oh-my-claudecode session files)
+.omc/
+
+# Regenerable bulk outputs — the markdown summaries stay tracked
+reports/*.csv
+
 # OS / editor
 .DS_Store
 .idea/
