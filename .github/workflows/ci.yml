@@ -23,10 +23,15 @@ jobs:
         run: ruff check .
 
       - name: Generate sample data (3 days, small volume for CI speed)
-        run: python generator/generate_orders.py --days 3 --orders-per-day 2000
+        run: |
+          python generator/generate_orders.py --days 3 --orders-per-day 2000
+          python generator/generate_payments.py --days 3
 
-      - name: Run orders pipeline
-        run: python pipelines/orders/run_pipeline.py --all
+      - name: Run orders pipeline (ingest -> dbt build -> report)
+        run: python pipelines/orders/run_pipeline.py --all --skip-tests
+
+      - name: Run reconciliation pipeline
+        run: python pipelines/reconciliation/run_recon.py --all
 
       - name: Run test suite
         run: pytest tests/ -v
