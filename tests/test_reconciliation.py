@@ -110,6 +110,15 @@ def test_alerts_fire_on_known_bad_days(rcon):
 def test_matching_engine_rerun_is_idempotent():
     if not WAREHOUSE_PATH.exists():
         pytest.skip("warehouse not built yet")
+    probe = duckdb.connect(str(WAREHOUSE_PATH), read_only=True)
+    try:
+        built = probe.execute(
+            "SELECT count(*) FROM duckdb_tables() WHERE schema_name = 'recon'"
+        ).fetchone()[0]
+    finally:
+        probe.close()
+    if not built:
+        pytest.skip("recon tables not built yet (run run_recon.py first)")
 
     def checksum():
         c = duckdb.connect(str(WAREHOUSE_PATH), read_only=True)
