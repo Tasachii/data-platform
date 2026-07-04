@@ -19,10 +19,25 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from pipelines.orders import ingest, report, transform  # noqa: E402
+from pipelines.orders import ingest, report  # noqa: E402
 from pipelines.orders.common import get_logger  # noqa: E402
 
 log = get_logger("pipeline")
+
+
+def dbt_build() -> None:
+    """Transform + schema-test via dbt (models live in dbt/models)."""
+    # dbt has no python -m entrypoint; use the console script installed next
+    # to the interpreter (works in the venv and inside the Airflow image).
+    dbt_exe = Path(sys.executable).with_name("dbt")
+    result = subprocess.run(
+        [str(dbt_exe) if dbt_exe.exists() else "dbt", "build",
+         "--project-dir", str(REPO_ROOT / "dbt"),
+         "--profiles-dir", str(REPO_ROOT / "dbt")],
+        cwd=REPO_ROOT,
+    )
+    if result.returncode != 0:
+        raise RuntimeError("dbt build failed")
 
 
 def main() -> int:
@@ -36,8 +51,8 @@ def main() -> int:
     log.info("=== step 1/4: ingest (%d date(s)) ===", len(dates))
     ingest.ingest(dates)
 
-    log.info("=== step 2/4: transform ===")
-    transform.run_all()
+    log.info("=== step 2/4: transform (dbt build) ===")
+    dbt_build()
 
     log.info("=== step 3/4: business report ===")
     report.main()

@@ -1,0 +1,16 @@
+name: data_platform
+version: "1.0"
+profile: data_platform
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+models:
+  data_platform:
+    +materialized: table
+    staging:
+      +schema: staging
+    intermediate:
+      +schema: intermediate
+    marts:
+      +schema: marts

@@ -1,0 +1,8 @@
+data_platform:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Relative to the invocation cwd (repo root); containers/CI override it.
+      path: "{{ env_var('PLATFORM_DB', 'warehouse/platform.duckdb') }}"
+      threads: 4

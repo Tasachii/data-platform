@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: Current state per order — one row per order_id, UTC instants, DECIMAL money.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: order_ts
+        tests: [not_null]
+      - name: updated_at
+        tests: [not_null]
+      - name: total_amount
+        tests: [not_null]
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [pending, paid, shipped, delivered, cancelled, refunded]
+      - name: channel
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [web, shopee, lazada]
+
+  - name: rejected_orders
+    description: Quarantined rows with reasons — clean + rejected must cover every distinct raw order_id.
+    columns:
+      - name: reject_reason
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [missing_order_id, unparseable_timestamp, amount_null_or_invalid, amount_negative]
+
+  - name: stg_order_items
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: qty
+        tests: [not_null]
+      - name: unit_price
+        tests: [not_null]
+
+  - name: stg_customers
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+
+  - name: stg_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]

@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: fct_daily_sales
+    description: Money at (business_date, channel, category); counts intentionally excluded — see fct_daily_orders.
+    columns:
+      - name: business_date
+        tests: [not_null]
+      - name: gross_amount
+        tests: [not_null]
+      - name: net_amount
+        tests: [not_null]
+
+  - name: fct_daily_orders
+    description: Order counts at (business_date, channel) — the only grain where they are additive.
+    columns:
+      - name: business_date
+        tests: [not_null]
+      - name: net_orders
+        tests: [not_null]
+
+  - name: dim_customers
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+
+  - name: dim_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+
+  - name: fct_refund_analysis
+    columns:
+      - name: category
+        tests: [unique, not_null]

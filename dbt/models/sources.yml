@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Untyped landing zone. The ingest step (pipelines/orders/ingest.py) loads
+      daily CSVs here verbatim — all VARCHAR — so the source's dirt survives
+      long enough to be cleaned deliberately, with rejects quarantined.
+    schema: raw
+    tables:
+      - name: orders
+        description: One row per order VERSION as emitted by the source (resends and retro status updates included).
+      - name: order_items
+      - name: products
+      - name: customers
