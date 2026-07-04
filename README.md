@@ -2,125 +2,225 @@
 
 [![ci](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
 
-End-to-end data platform for a simulated Thai e-commerce/logistics company:
-daily order ingestion with realistically dirty data, dbt warehouse modeling,
-payment reconciliation, Airflow orchestration — all runnable locally at zero
-cost, tested down to 100% recall of every injected failure mode.
+An end-to-end data platform for a simulated Thai e-commerce/logistics company: a
+daily orders pipeline (~20,000 orders/day, 30 days, with the dirt real sources
+produce), a dbt-modelled DuckDB warehouse, a payment-reconciliation engine, and
+Airflow orchestration on Docker Compose. Everything runs locally at zero cost —
+no cloud account, no credentials — and rebuilds from an empty directory in
+about a minute of compute.
 
-```mermaid
-flowchart LR
-    subgraph sources["Source simulators (generator/)"]
-        G1["orders + items\n~20k orders/day, 30 days\n7 failure modes injected"]
-        G2["gateway txns + ledger\n~18k payments/day, 7 days\n8 mismatch types injected"]
-    end
+## Contents
 
-    subgraph platform["DuckDB warehouse · Airflow · Docker"]
-        R[("raw\n(untyped, partitioned\nby source file)")]
-        S[("staging\ndedup · UTC · DECIMAL\n+ rejected quarantine")]
-        I[("intermediate\nSCD2 history\nenrichment")]
-        M[("marts\nfct/dim star schema")]
-        REC[("recon\nwaterfall results\nsummary · alerts")]
-    end
+- [Status](#status)
+- [Quickstart](#quickstart)
+- [Why this exists](#why-this-exists)
+- [Architecture](#architecture)
+- [The orders pipeline](#the-orders-pipeline)
+- [The reconciliation pipeline](#the-reconciliation-pipeline)
+- [Airflow](#airflow)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Project documentation](#project-documentation)
+- [Roadmap](#roadmap)
+- [License](#license)
 
-    subgraph outputs["Outputs"]
-        O1["sales_summary.md"]
-        O2["recon report +\nfinance follow-up CSV"]
-        O3["alerts (CRITICAL/WARNING)"]
-    end
+## Status
 
-    G1 -->|"ingest (idempotent\nreplace-partition)"| R
-    G2 -->|ingest| R
-    R -->|"dbt build\n(12 models · 36 tests)"| S --> I --> M --> O1
-    R -->|"matching engine\n(5-rule waterfall)"| REC --> O2
-    REC --> O3
-```
+Both pipelines are **implemented and tested** end to end: 52 pytest tests
+(idempotency by checksum, 100%-recall edge-case coverage, per-rule matching
+units) plus 36 dbt schema tests, all green in CI on every push. The two Airflow
+DAGs have been executed to completion inside the Docker stack
+(`airflow dags test`, state=success).
 
-## Pipelines
+The sources are **simulators, by design**: real order and payment feeds cannot
+be published, so `generator/` produces them — and writes a manifest of every
+corruption it injects, which is what lets the test suite prove recall instead
+of asserting vibes. Not wired up: a webhook target for reconciliation alerts
+(they land in a table and the report), and a cloud warehouse — see
+[Roadmap](#roadmap).
 
-| Pipeline | What it proves | Docs |
-|---|---|---|
-| **Orders** — daily batch, 600k orders | Idempotent incremental loads, late-arriving data, SCD2, refund restatement to original date, fact-grain discipline | [`pipelines/orders/`](pipelines/orders/README.md) |
-| **Reconciliation** — gateway vs ledger, 125k txns | Normalization-first matching waterfall, duplicate detection, alerting, 100% recall of injected mismatches | [`pipelines/reconciliation/`](pipelines/reconciliation/README.md) |
+## Quickstart
 
-Both pipelines describe **one business**: the reconciliation payments are
-derived from the orders pipeline's own data.
-
-## Quickstart (local, ~2 minutes)
+**Requirements** — [Python 3.11+](https://www.python.org) · [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Airflow path only)
 
 ```bash
+git clone https://github.com/Tasachii/data-platform.git
+cd data-platform
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python generator/generate_orders.py            # 30 days of dirty source data
-python generator/generate_payments.py          # 7 days of payments to reconcile
+python generator/generate_orders.py
+python generator/generate_payments.py
 
-python pipelines/orders/run_pipeline.py --all  # ingest → dbt build → report → 52 tests
+python pipelines/orders/run_pipeline.py --all
 python pipelines/reconciliation/run_recon.py --all
 ```
 
-Backfill any window without touching other days:
+The orders run finishes with the full test suite; a red test aborts the
+pipeline with a non-zero exit. Outputs land in `reports/` as markdown, plus a
+`recon_unmatched.csv` follow-up queue for the finance persona.
+
+Backfills never touch other days:
 
 ```bash
 python pipelines/orders/run_pipeline.py --date 2026-06-15
 python pipelines/orders/run_pipeline.py --start 2026-06-01 --end 2026-06-07
 ```
 
-## Quickstart (Airflow on Docker)
+## Why this exists
+
+Portfolio pipelines usually demonstrate the happy path on a clean CSV. Real
+data work is the opposite: sources resend rows, refunds arrive a week late,
+files show up a day after their data, ledgers disagree with gateways by
+exactly one fee. This platform makes those failure modes the *point* — each
+one is deliberately injected, recorded in a manifest, and caught by a named
+test. The result doubles as a working answer to the classic data-engineering
+interview questions: idempotency, SCD Type 2, late-arriving data, restatement,
+fact grain, and reconciliation.
+
+## Architecture
+
+```
+generator/                          DuckDB warehouse (warehouse/platform.duckdb)
+  orders + items  ──ingest──▶  raw ──dbt build──▶ staging ─▶ intermediate ─▶ marts ─▶ sales report
+  gateway + ledger ─ingest──▶  raw ──matching engine──▶ recon (results · summary · alerts) ─▶ finance report
+                               ▲
+             replace-partition by source file, logged in meta.ingest_log
+```
+
+| Component | Role | Technology |
+|---|---|---|
+| `generator/` | Simulates both source systems; writes corruption manifests | Python · numpy · pandas |
+| `pipelines/orders/` | Idempotent ingest, runner, business report | Python · DuckDB |
+| `dbt/` | 12 models (staging → intermediate → marts) · 36 schema tests | dbt-duckdb |
+| `pipelines/reconciliation/` | 5-rule waterfall matching engine, alerting | Python · DuckDB SQL |
+| `dags/` | `orders_daily` · `recon_daily` | Airflow 2.10 · Docker Compose |
+| `tests/` | 52 tests: quality, recall, idempotency, per-rule units | pytest |
+
+Design decisions worth noting (each has a full ADR in `docs/decisions/`):
+
+- **Idempotency is proven, not promised.** Ingest replaces a file's partition
+  (`DELETE` by `_source_file`, then insert); transforms are pure
+  `CREATE OR REPLACE`. A test checksums all ten tables, re-runs the whole
+  pipeline in a subprocess, and asserts nothing moved. (ADR-004)
+- **Money is `DECIMAL(14,2)` end to end.** A reconciliation engine with float
+  equality invents mismatches and hides real ones. (ADR-002)
+- **Store UTC, report Asia/Bangkok.** Sources serialize the same instant as
+  `+00:00` or `+07:00`; everything is parsed to UTC instants, and the Bangkok
+  calendar date is derived only at the reporting layer — always explicitly,
+  never via session-timezone casts. (ADR-003)
+- **Refunds restate the original business date.** The mart rebuilds from
+  current status, so a refund five days later moves its order out of NET on
+  the day it was placed — with gross/refund kept visible. (ADR-005)
+- **Money at line grain, counts at order grain.** Counting distinct orders
+  inside category groups inflated totals 2.2× during development; the fix is
+  two facts, each carrying only measures additive at its grain. (ADR-007)
+- **DuckDB is single-writer.** DAGs run with `max_active_runs=1`; the
+  BigQuery promotion path is in the backlog. (ADR-001)
+
+## The orders pipeline
+
+~20,000 orders/day across three channels (`web` · `shopee` · `lazada`),
+600,000 orders over the default 30-day window. Every failure mode below is
+injected by the generator, counted in `raw/_manifest.json`, and caught at 100%
+by a named test:
+
+| Injected failure | Volume (default run) | Handling |
+|---|---|---|
+| Duplicate resends — not always byte-identical (same instant, different tz offset) | 12,298 rows | Dedup on latest `updated_at` with a full content tie-break |
+| Retroactive refunds, 1–7 days late | 15,561 orders | SCD2 status history; NET restated onto the original date |
+| Late-arriving orders (day D in day D+1's file) | 5,800 orders | Facts key on `order_ts`, never file date |
+| Null / negative amounts | 3,000 orders | Quarantined with a reason — never silently dropped |
+| Orphan customer ids | 6,000 orders | Mapped to an explicit `unknown` dim member |
+| Invalid customer emails | 240 customers | Flagged, kept |
+| Mixed `+00:00` / `+07:00` timestamps | ~50% of rows | Parsed to UTC instants at staging |
+
+Details, proofs, and the analyst query pack: [`pipelines/orders/README.md`](pipelines/orders/README.md).
+
+## The reconciliation pipeline
+
+125,336 gateway transactions vs 125,326 ledger entries over 7 days — derived
+from the orders pipeline's own paid orders, so the platform describes one
+business. A 5-rule waterfall puts every record in exactly one bucket:
+exact → date-boundary → fee/rounding → fuzzy (refs must *look related*:
+containment or Levenshtein ≤ 4) → missing, with duplicate postings flagged in
+a pre-pass. Recall of injected mismatches is 100%:
+
+| Injected mismatch | Volume | Detected as |
+|---|---|---|
+| In gateway, missing from ledger | 1,880 | `missing_in_ledger` |
+| In ledger, missing from gateway | 1,253 | `missing_in_gateway` |
+| Rounding drift (0.01–0.05) | 2,506 | `rounding` |
+| Ledger already net of fee | 1,253 | `fee_timing` |
+| Double postings | 617 | `duplicate_posting` |
+| Dirty currency (`thb`, ` THB`) · missing `GW-` prefix | 376 · 6,266 | normalized → still match |
+
+Alerts (`CRITICAL` on match rate < 97% or |net difference| > ฿10,000/day,
+`WARNING` on any duplicate posting) land in `recon.alerts` and the report.
+Waterfall diagram and rule rationale: [`pipelines/reconciliation/README.md`](pipelines/reconciliation/README.md).
+
+## Airflow
 
 ```bash
-docker compose up -d          # UI at http://localhost:8080  (admin/admin)
+docker compose up -d
+```
 
-# or execute a full DAG headlessly:
+The UI serves on `http://localhost:8080` (`admin` / `admin` — local demo
+credentials only). Or execute a DAG headlessly:
+
+```bash
 docker compose exec airflow-scheduler airflow dags test orders_daily 2026-06-15
 docker compose exec airflow-scheduler airflow dags test recon_daily 2026-06-28
 ```
 
-DAGs: `orders_daily` (ingest → dbt build → report → quality gate) and
-`recon_daily` (ingest → match+alert → report).
+| DAG | Schedule | Tasks |
+|---|---|---|
+| `orders_daily` | `@daily` | ingest → dbt build → report → data-quality gate |
+| `recon_daily` | `@daily` | ingest → match + alert → report |
 
-## How this is tested
+## Configuration
 
-The generators write a **manifest of every corruption they inject** — 12,298
-duplicate resends, 15,561 retroactive refunds, 5,800 late arrivals, 3,000
-broken amounts, 6,000 orphan customers, 1,880 payments missing from the
-ledger, 617 double postings, and more. The test suite (52 pytest tests + 36
-dbt schema tests) then proves the pipelines catch **all of them**:
+Everything works with defaults; the environment variables exist so CI,
+containers, and throwaway experiments can point elsewhere.
 
-- every edge case maps to a named test (recall, not vibes)
-- full-pipeline idempotency is proven by checksumming all tables across a
-  complete re-run in a subprocess
-- each reconciliation rule has isolated unit tests on in-memory fixtures
-- money reconciles across layers to the satang — because it's DECIMAL, not float
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PLATFORM_DB` | No | `warehouse/platform.duckdb` | Warehouse file path (also read by the dbt profile) |
+| `PLATFORM_RAW_DIR` | No | `raw/` | Directory the generators write and ingest reads |
 
-CI runs the entire platform (generate → pipelines → tests) on every push.
+## Testing
 
-## Design decisions
-
-Every non-obvious choice has an ADR in [`docs/decisions/`](docs/decisions/):
-DuckDB as warehouse (000/001), DECIMAL money (002), UTC storage with
-Asia/Bangkok reporting (003), idempotency contracts (004), refund
-restatement (005), scripts→dbt→Airflow phasing (006), fact grain — including
-the 2.2x order-count inflation bug it fixes (007), and the reconciliation
-waterfall's similarity guard (008).
-
-## Repo layout
-
-```
-generator/                 source-system simulators (+ corruption manifests)
-pipelines/orders/          ingest, runner, report, analyst queries
-pipelines/reconciliation/  ingest, matching engine, alerting, report
-dbt/                       models (staging/intermediate/marts) + schema tests
-dags/                      Airflow DAGs
-tests/                     52 pytest tests: quality, recall, idempotency, unit
-docs/decisions/            ADR-000 … ADR-008
-reports/                   generated business reports (markdown)
+```bash
+pytest tests/
+ruff check .
 ```
 
-## Limits I know about
+52 tests: structural data quality (uniqueness, referential integrity, money
+reconciled across layers), manifest-driven recall of every injected edge case,
+full-pipeline idempotency by checksum, and 15 per-rule unit tests for the
+matching waterfall on in-memory fixtures. dbt adds 36 schema tests inside
+`dbt build`. CI (GitHub Actions) regenerates a 3-day sample and runs the
+whole platform — generators, both pipelines, every test — on each push.
 
-- DuckDB is single-writer → `max_active_runs=1`; the BigQuery migration path
-  is in `docs/backlog.md`.
-- Transforms are full-refresh — right up to ~millions of rows, then the marts
-  become incremental models keyed on `business_date` (ADR-004).
-- Payment volume is order-derived (~18k/day), below a big fintech's 50k+/day;
-  the matching logic is volume-independent.
+## Project documentation
+
+- [`pipelines/orders/README.md`](pipelines/orders/README.md) — the orders pipeline: handling table, idempotency contract, modeling notes
+- [`pipelines/reconciliation/README.md`](pipelines/reconciliation/README.md) — the matching waterfall, mismatch taxonomy, alerting rules
+- [`docs/decisions/`](docs/decisions/) — ADR-000 … ADR-008, one per non-obvious choice
+- [`docs/backlog.md`](docs/backlog.md) — deliberately out-of-scope work
+- [`docs/blog/refund-restatement-th.md`](docs/blog/refund-restatement-th.md) — blog draft (Thai): refund restatement and the bugs found building this
+
+## Roadmap
+
+Shipped: both pipelines, dbt migration, Airflow-on-Docker, CI, ADRs. Next, in
+rough order — marketing-attribution pipeline (multi-source ingest), promotion
+of the warehouse to BigQuery (dbt makes this mostly a profile change), Airflow
+3.x migration, and a product-analytics pipeline fed by real web events. The
+full list with rationale lives in [`docs/backlog.md`](docs/backlog.md).
+
+## License
+
+MIT © Phasathat Jaruchitsophon
+
+Synthetic data only — no real customer, order, or payment records exist
+anywhere in this repository.
