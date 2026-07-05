@@ -2,6 +2,8 @@ version: 2
 
 models:
   - name: stg_ad_performance
+    config:
+      tags: [marketing]
     description: Typed, THB-converted ad rows; Google exact-duplicate resends collapsed; "N/A" conversions flagged not dropped.
     columns:
       - name: report_date
@@ -18,12 +20,16 @@ models:
         tests: [not_null]
 
   - name: stg_utm_touches
+    config:
+      tags: [marketing]
     description: One row per order with normalized platform ('organic' when no UTM; NULL when the variant is unknown to the seed).
     columns:
       - name: order_id
         tests: [unique, not_null]
 
   - name: stg_fx_rates
+    config:
+      tags: [marketing]
     columns:
       - name: fx_date
         tests: [unique, not_null]

@@ -1,3 +1,5 @@
+{{ config(tags=['marketing']) }}
+
 -- Last-touch attribution: each order's revenue goes to the platform/campaign
 -- of its (single) UTM touch. Organic orders keep their revenue under the
 -- 'organic' bucket — dropping them would overstate paid channels' share.

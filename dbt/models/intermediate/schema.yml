@@ -2,6 +2,8 @@ version: 2
 
 models:
   - name: int_order_status_history
+    config:
+      tags: [orders]
     description: SCD2 status intervals per order (valid_from / valid_to / is_current).
     columns:
       - name: order_id
@@ -10,6 +12,8 @@ models:
         tests: [not_null]
 
   - name: int_orders_enriched
+    config:
+      tags: [orders]
     description: Order grain, current state, enriched; business_date in Asia/Bangkok.
     columns:
       - name: order_id

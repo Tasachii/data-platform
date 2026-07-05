@@ -2,6 +2,8 @@ version: 2
 
 models:
   - name: fct_channel_performance
+    config:
+      tags: [marketing]
     description: Daily spend/delivery vs attributed revenue per platform (+ organic).
     columns:
       - name: activity_date
@@ -16,6 +18,8 @@ models:
         tests: [not_null]
 
   - name: fct_campaign_performance
+    config:
+      tags: [marketing]
     description: Cross-platform campaign rollup at canonical grain.
     columns:
       - name: canonical

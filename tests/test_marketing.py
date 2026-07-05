@@ -59,8 +59,24 @@ def test_google_duplicate_rows_collapse(mcon, mkt_manifest):
 
 
 def test_na_conversions_flagged_not_dropped(mcon, mkt_manifest):
+    # Manifest entries look like "tiktok|170490001|2026-06-30". An N/A row can
+    # live inside a late file that hasn't been ingested yet — only rows from
+    # DELIVERED files can possibly be flagged, so count against those.
+    loaded_tiktok_dates = {
+        str(r[0]) for r in mcon.execute(
+            "SELECT DISTINCT report_date FROM staging.stg_ad_performance WHERE platform = 'tiktok'"
+        ).fetchall()
+    }
+    late_undelivered = set(mkt_manifest["edge_cases"]["tiktok_late_dates"]) - loaded_tiktok_dates
+    expected = sum(
+        1 for entry in mkt_manifest["edge_cases"]["conversions_na_rows"]
+        if not (entry.startswith("tiktok|") and entry.rsplit("|", 1)[1] in late_undelivered)
+    )
     flagged = one(mcon, "SELECT count(*) FROM staging.stg_ad_performance WHERE conversions_missing")
-    assert flagged == mkt_manifest["edge_counts"]["conversions_na_rows"]
+    assert flagged == expected, (
+        f"{expected} N/A rows delivered, {flagged} flagged "
+        f"(undelivered late dates: {sorted(late_undelivered)})"
+    )
     spend_kept = one(mcon, """
         SELECT count(*) FROM staging.stg_ad_performance
         WHERE conversions_missing AND spend_thb > 0""")
@@ -149,7 +165,7 @@ def test_attribution_keeps_every_moneyed_touch(mcon):
     assert organic > 0, "organic bucket must exist"
 
 
-def test_marketing_rerun_is_idempotent():
+def test_marketing_rerun_is_idempotent(mkt_manifest):
     if not WAREHOUSE_PATH.exists():
         pytest.skip("warehouse not built yet")
 

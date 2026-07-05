@@ -39,7 +39,8 @@ with DAG(
 
     dbt_build = BashOperator(
         task_id="dbt_build",
-        bash_command=f"cd {REPO} && dbt build --project-dir dbt --profiles-dir dbt",
+        bash_command=(f"cd {REPO} && dbt build --project-dir dbt --profiles-dir dbt "
+                      "--select +tag:orders"),
     )
 
     report = BashOperator(

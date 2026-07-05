@@ -34,8 +34,8 @@ def main() -> int:
     log.info("=== step 1/3: ingest (%d date(s)) ===", len(dates))
     ingest.ingest(dates, include_late=args.include_late)
 
-    log.info("=== step 2/3: transform (dbt build) ===")
-    dbt_build()
+    log.info("=== step 2/3: transform (dbt build, marketing models) ===")
+    dbt_build(select="+tag:marketing")
 
     log.info("=== step 3/3: report ===")
     report.main()

@@ -2,6 +2,8 @@ version: 2
 
 models:
   - name: stg_orders
+    config:
+      tags: [orders]
     description: Current state per order — one row per order_id, UTC instants, DECIMAL money.
     columns:
       - name: order_id
@@ -26,6 +28,8 @@ models:
                 values: [web, shopee, lazada]
 
   - name: rejected_orders
+    config:
+      tags: [orders]
     description: Quarantined rows with reasons — clean + rejected must cover every distinct raw order_id.
     columns:
       - name: reject_reason
@@ -36,6 +40,8 @@ models:
                 values: [missing_order_id, unparseable_timestamp, amount_null_or_invalid, amount_negative]
 
   - name: stg_order_items
+    config:
+      tags: [orders]
     columns:
       - name: order_id
         tests: [not_null]
@@ -45,11 +51,15 @@ models:
         tests: [not_null]
 
   - name: stg_customers
+    config:
+      tags: [orders]
     columns:
       - name: customer_id
         tests: [unique, not_null]
 
   - name: stg_products
+    config:
+      tags: [orders]
     columns:
       - name: product_id
         tests: [unique, not_null]

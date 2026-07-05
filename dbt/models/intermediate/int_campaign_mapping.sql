@@ -1,3 +1,5 @@
+{{ config(tags=['marketing']) }}
+
 -- Cross-platform campaign identity: "Mega Sale 6.6" (FB) = "mega_sale_6.6_TH"
 -- (Google) = "MEGA SALE 66" (TikTok). The ops-maintained seed is the source
 -- of truth; anything the seed doesn't know falls back to its own normalized
