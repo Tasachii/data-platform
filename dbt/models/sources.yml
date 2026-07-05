@@ -13,3 +13,9 @@ sources:
       - name: order_items
       - name: products
       - name: customers
+      - name: ad_performance
+        description: Unified ad rows from the platform connectors (FB ad grain, Google/TikTok campaign grain); values still raw strings.
+      - name: utm_touches
+        description: order_id ↔ dirty utm_source/utm_campaign; organic orders carry NULLs.
+      - name: fx_rates
+        description: Daily USD→THB, one row per date in the marketing window.

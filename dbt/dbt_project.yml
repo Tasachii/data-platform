@@ -4,6 +4,11 @@ profile: data_platform
 
 model-paths: ["models"]
 macro-paths: ["macros"]
+seed-paths: ["seeds"]
+
+seeds:
+  data_platform:
+    +schema: staging
 
 models:
   data_platform:

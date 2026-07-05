@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: fct_channel_performance
+    description: Daily spend/delivery vs attributed revenue per platform (+ organic).
+    columns:
+      - name: activity_date
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [facebook, google, tiktok, organic]
+      - name: spend_thb
+        tests: [not_null]
+
+  - name: fct_campaign_performance
+    description: Cross-platform campaign rollup at canonical grain.
+    columns:
+      - name: canonical
+        tests: [unique, not_null]

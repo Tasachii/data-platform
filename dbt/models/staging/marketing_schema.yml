@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_ad_performance
+    description: Typed, THB-converted ad rows; Google exact-duplicate resends collapsed; "N/A" conversions flagged not dropped.
+    columns:
+      - name: report_date
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [facebook, google, tiktok]
+      - name: spend_thb
+        tests: [not_null]
+      - name: campaign_name
+        tests: [not_null]
+
+  - name: stg_utm_touches
+    description: One row per order with normalized platform ('organic' when no UTM; NULL when the variant is unknown to the seed).
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+
+  - name: stg_fx_rates
+    columns:
+      - name: fx_date
+        tests: [unique, not_null]
+      - name: usd_thb
+        tests: [not_null]
