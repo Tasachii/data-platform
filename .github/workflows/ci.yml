@@ -26,12 +26,16 @@ jobs:
         run: |
           python generator/generate_orders.py --days 3 --orders-per-day 2000
           python generator/generate_payments.py --days 3
+          python generator/generate_marketing.py --days 3
 
       - name: Run orders pipeline (ingest -> dbt build -> report)
         run: python pipelines/orders/run_pipeline.py --all --skip-tests
 
       - name: Run reconciliation pipeline
         run: python pipelines/reconciliation/run_recon.py --all
+
+      - name: Run marketing attribution pipeline
+        run: python pipelines/marketing/run_marketing.py --all
 
       - name: Run test suite
         run: pytest tests/ -v

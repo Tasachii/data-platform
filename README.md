@@ -2,12 +2,13 @@
 
 [![ci](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
 
-An end-to-end data platform for a simulated Thai e-commerce/logistics company: a
-daily orders pipeline (~20,000 orders/day, 30 days, with the dirt real sources
-produce), a dbt-modelled DuckDB warehouse, a payment-reconciliation engine, and
-Airflow orchestration on Docker Compose. Everything runs locally at zero cost —
-no cloud account, no credentials — and rebuilds from an empty directory in
-about a minute of compute.
+An end-to-end data platform for a simulated Thai e-commerce/logistics company:
+a daily orders pipeline (~20,000 orders/day, 30 days, with the dirt real
+sources produce), a dbt-modelled DuckDB warehouse, a payment-reconciliation
+engine, a three-platform marketing-attribution pipeline, and Airflow
+orchestration on Docker Compose. Everything runs locally at zero cost — no
+cloud account, no credentials — and rebuilds from an empty directory in about
+a minute of compute.
 
 ## Contents
 
@@ -17,6 +18,7 @@ about a minute of compute.
 - [Architecture](#architecture)
 - [The orders pipeline](#the-orders-pipeline)
 - [The reconciliation pipeline](#the-reconciliation-pipeline)
+- [The marketing attribution pipeline](#the-marketing-attribution-pipeline)
 - [Airflow](#airflow)
 - [Configuration](#configuration)
 - [Testing](#testing)
@@ -26,14 +28,14 @@ about a minute of compute.
 
 ## Status
 
-Both pipelines are **implemented and tested** end to end: 52 pytest tests
+All three pipelines are **implemented and tested** end to end: 65 pytest tests
 (idempotency by checksum, 100%-recall edge-case coverage, per-rule matching
-units) plus 36 dbt schema tests, all green in CI on every push. The two Airflow
-DAGs have been executed to completion inside the Docker stack
-(`airflow dags test`, state=success).
+units, connector units) plus 52 dbt schema/data tests, all green in CI on
+every push. The Airflow DAGs have been executed to completion inside the
+Docker stack (`airflow dags test`, state=success).
 
-The sources are **simulators, by design**: real order and payment feeds cannot
-be published, so `generator/` produces them — and writes a manifest of every
+The sources are **simulators, by design**: real order, payment, and ad feeds
+cannot be published, so `generator/` produces them — and writes a manifest of every
 corruption it injects, which is what lets the test suite prove recall instead
 of asserting vibes. Not wired up: a webhook target for reconciliation alerts
 (they land in a table and the report), and a cloud warehouse — see
@@ -51,9 +53,11 @@ pip install -r requirements.txt
 
 python generator/generate_orders.py
 python generator/generate_payments.py
+python generator/generate_marketing.py
 
 python pipelines/orders/run_pipeline.py --all
 python pipelines/reconciliation/run_recon.py --all
+python pipelines/marketing/run_marketing.py --all
 ```
 
 The orders run finishes with the full test suite; a red test aborts the
@@ -81,21 +85,23 @@ fact grain, and reconciliation.
 ## Architecture
 
 ```
-generator/                          DuckDB warehouse (warehouse/platform.duckdb)
-  orders + items  ──ingest──▶  raw ──dbt build──▶ staging ─▶ intermediate ─▶ marts ─▶ sales report
-  gateway + ledger ─ingest──▶  raw ──matching engine──▶ recon (results · summary · alerts) ─▶ finance report
-                               ▲
-             replace-partition by source file, logged in meta.ingest_log
+generator/                            DuckDB warehouse (warehouse/platform.duckdb)
+  orders + items   ──ingest──▶  raw ──dbt build──▶ staging ─▶ intermediate ─▶ marts ─▶ sales report
+  gateway + ledger ──ingest──▶  raw ──matching engine──▶ recon (results · summary · alerts) ─▶ finance report
+  ads (FB/G/TT) + utm ─connectors─▶ raw ──dbt build──▶ attribution marts (ROAS) ─▶ growth report
+                                 ▲
+               replace-partition by source file, logged in meta.ingest_log
 ```
 
 | Component | Role | Technology |
 |---|---|---|
-| `generator/` | Simulates both source systems; writes corruption manifests | Python · numpy · pandas |
+| `generator/` | Simulates all three source systems; writes corruption manifests | Python · numpy · pandas |
 | `pipelines/orders/` | Idempotent ingest, runner, business report | Python · DuckDB |
-| `dbt/` | 12 models (staging → intermediate → marts) · 36 schema tests | dbt-duckdb |
 | `pipelines/reconciliation/` | 5-rule waterfall matching engine, alerting | Python · DuckDB SQL |
-| `dags/` | `orders_daily` · `recon_daily` | Airflow 2.10 · Docker Compose |
-| `tests/` | 52 tests: quality, recall, idempotency, per-rule units | pytest |
+| `pipelines/marketing/` | Per-platform connectors, late-file backfill, growth report | Python · DuckDB |
+| `dbt/` | 19 models · 2 identity seeds · 52 schema/data tests | dbt-duckdb |
+| `dags/` | `orders_daily` · `recon_daily` · `marketing_daily` | Airflow 2.10 · Docker Compose |
+| `tests/` | 65 tests: quality, recall, idempotency, per-rule units | pytest |
 
 Design decisions worth noting (each has a full ADR in `docs/decisions/`):
 
@@ -159,6 +165,27 @@ Alerts (`CRITICAL` on match rate < 97% or |net difference| > ฿10,000/day,
 `WARNING` on any duplicate posting) land in `recon.alerts` and the report.
 Waterfall diagram and rule rationale: [`pipelines/reconciliation/README.md`](pipelines/reconciliation/README.md).
 
+## The marketing attribution pipeline
+
+Facebook, Google and TikTok exports that agree on nothing — nested JSON vs
+metadata-prefixed CSV, USD vs THB (with comma thousands), three date formats,
+three reporting timezones — unified by per-platform connector classes, then
+joined to warehouse-attributed order revenue (250k UTM touches pointing at the
+platform's own orders) for last-touch ROAS:
+
+| Injected problem | Handling |
+|---|---|
+| `"12,450.00"` THB costs · `N/A` conversions | Values cleaned in dbt staging; `N/A` flagged, its spend still counted |
+| Exact duplicate rows in Google files | Collapsed; count pinned against the manifest |
+| Facebook ads with spend > 0, impressions = 0 | Kept (the money is real); all ratios NULLIF-guarded — never Infinity |
+| `fb` / `FB_ads` / `adwords` / `tt` utm variants | Seed-mapped; unknown variants fail a test instead of vanishing |
+| Same campaign spelled differently per platform | Canonical identity via ops seed + normalized-name fallback |
+| TikTok's final-day file delivered late | WARNING + visible gap in the report; `--include-late` backfills the partition |
+
+Attribution limits (multi-touch, platform-local reporting days,
+platform-conversions vs warehouse-orders) are stated in
+[`pipelines/marketing/README.md`](pipelines/marketing/README.md), not hidden.
+
 ## Airflow
 
 ```bash
@@ -171,12 +198,14 @@ credentials only). Or execute a DAG headlessly:
 ```bash
 docker compose exec airflow-scheduler airflow dags test orders_daily 2026-06-15
 docker compose exec airflow-scheduler airflow dags test recon_daily 2026-06-28
+docker compose exec airflow-scheduler airflow dags test marketing_daily 2026-06-28
 ```
 
 | DAG | Schedule | Tasks |
 |---|---|---|
 | `orders_daily` | `@daily` | ingest → dbt build → report → data-quality gate |
 | `recon_daily` | `@daily` | ingest → match + alert → report |
+| `marketing_daily` | `@daily` | ingest (3 connectors) → dbt build → report |
 
 ## Configuration
 
@@ -195,28 +224,30 @@ pytest tests/
 ruff check .
 ```
 
-52 tests: structural data quality (uniqueness, referential integrity, money
+65 tests: structural data quality (uniqueness, referential integrity, money
 reconciled across layers), manifest-driven recall of every injected edge case,
-full-pipeline idempotency by checksum, and 15 per-rule unit tests for the
-matching waterfall on in-memory fixtures. dbt adds 36 schema tests inside
-`dbt build`. CI (GitHub Actions) regenerates a 3-day sample and runs the
-whole platform — generators, both pipelines, every test — on each push.
+full-pipeline idempotency by checksum, 15 per-rule unit tests for the matching
+waterfall and 3 connector unit tests on in-memory fixtures. dbt adds 52
+schema/data tests inside `dbt build`. CI (GitHub Actions) regenerates a 3-day
+sample and runs the whole platform — generators, all three pipelines, every
+test — on each push.
 
 ## Project documentation
 
 - [`pipelines/orders/README.md`](pipelines/orders/README.md) — the orders pipeline: handling table, idempotency contract, modeling notes
 - [`pipelines/reconciliation/README.md`](pipelines/reconciliation/README.md) — the matching waterfall, mismatch taxonomy, alerting rules
+- [`pipelines/marketing/README.md`](pipelines/marketing/README.md) — connectors, identity seeds, late-file backfill, attribution limits
 - [`docs/decisions/`](docs/decisions/) — ADR-000 … ADR-008, one per non-obvious choice
 - [`docs/backlog.md`](docs/backlog.md) — deliberately out-of-scope work
 - [`docs/blog/refund-restatement-th.md`](docs/blog/refund-restatement-th.md) — blog draft (Thai): refund restatement and the bugs found building this
 
 ## Roadmap
 
-Shipped: both pipelines, dbt migration, Airflow-on-Docker, CI, ADRs. Next, in
-rough order — marketing-attribution pipeline (multi-source ingest), promotion
-of the warehouse to BigQuery (dbt makes this mostly a profile change), Airflow
-3.x migration, and a product-analytics pipeline fed by real web events. The
-full list with rationale lives in [`docs/backlog.md`](docs/backlog.md).
+Shipped: all three pipelines, dbt migration, Airflow-on-Docker, CI, ADRs.
+Next, in rough order — promotion of the warehouse to BigQuery (dbt makes this
+mostly a profile change), Airflow 3.x migration, and a product-analytics
+pipeline fed by real web events. The full list with rationale lives in
+[`docs/backlog.md`](docs/backlog.md).
 
 ## License
 
