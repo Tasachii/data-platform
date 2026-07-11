@@ -162,6 +162,89 @@ def test_every_record_lands_in_exactly_one_bucket():
     assert dup_assignments == 0
 
 
+def test_repeated_reference_is_assigned_deterministically_one_to_one():
+    con = make_con(
+        [
+            g_row("T2", "GW-SAME", "1000.00"),
+            g_row("T1", "GW-SAME", "500.00"),
+        ],
+        [
+            l_row("L2", "GW-SAME", "400.00"),
+            l_row("L1", "GW-SAME", "900.00"),
+        ],
+    )
+    run_matching(con)
+
+    assignments = con.execute("""
+        SELECT txn_id, entry_id, match_type
+        FROM recon.recon_results
+        WHERE txn_id IS NOT NULL AND entry_id IS NOT NULL
+        ORDER BY txn_id
+    """).fetchall()
+    assert assignments == [
+        ("T1", "L2", "amount_other"),
+        ("T2", "L1", "amount_other"),
+    ]
+    assert con.execute("SELECT count(DISTINCT txn_id) FROM recon.recon_results").fetchone()[0] == 2
+    assert con.execute("SELECT count(DISTINCT entry_id) FROM recon.recon_results").fetchone()[0] == 2
+
+
+def test_repeated_exact_gateway_posting_does_not_reuse_one_ledger_entry():
+    con = make_con(
+        [g_row("T2", "GW-SAME", "1000.00"), g_row("T1", "GW-SAME", "1000.00")],
+        [l_row("L1", "GW-SAME", "1000.00")],
+    )
+    run_matching(con)
+
+    assert con.execute("""
+        SELECT txn_id, entry_id, match_type
+        FROM recon.recon_results ORDER BY txn_id
+    """).fetchall() == [
+        ("T1", "L1", "exact"),
+        ("T2", None, "missing_in_ledger"),
+    ]
+
+
+def test_rule3_assignment_is_maximum_cardinality_under_asymmetric_preferences():
+    con = make_con(
+        [g_row("T1", "GW-SAME", "0.00"), g_row("T2", "GW-SAME", "1.00")],
+        [l_row("L1", "GW-SAME", "10.00"), l_row("L2", "GW-SAME", "100.00")],
+    )
+    run_matching(con)
+
+    assert con.execute("""
+        SELECT txn_id, entry_id, match_type
+        FROM recon.recon_results ORDER BY txn_id
+    """).fetchall() == [
+        ("T1", "L1", "amount_other"),
+        ("T2", "L2", "amount_other"),
+    ]
+
+
+@pytest.mark.parametrize("gateway_count, ledger_count", [(1, 4), (4, 1), (3, 3), (2, 5)])
+def test_rule3_matches_minimum_side_and_leaves_no_matchable_residual_pair(
+    gateway_count, ledger_count
+):
+    gateways = [g_row(f"T{i}", "GW-SAME", f"{i}.00") for i in range(gateway_count)]
+    ledgers = [l_row(f"L{i}", "GW-SAME", f"{100 + i}.00") for i in range(ledger_count)]
+    con = make_con(gateways, ledgers)
+    run_matching(con)
+
+    matched = con.execute("""
+        SELECT count(*) FROM recon.recon_results
+        WHERE txn_id IS NOT NULL AND entry_id IS NOT NULL
+    """).fetchone()[0]
+    assert matched == min(gateway_count, ledger_count)
+    residual_pairs = con.execute("""
+        SELECT count(*)
+        FROM recon.recon_results g
+        JOIN recon.recon_results l ON g.ref = l.ref
+        WHERE g.match_type = 'missing_in_ledger'
+          AND l.match_type = 'missing_in_gateway'
+    """).fetchone()[0]
+    assert residual_pairs == 0
+
+
 @pytest.mark.parametrize("bad_amount", ["", "N/A"])
 def test_unparseable_amounts_do_not_crash(bad_amount):
     con = make_con([g_row(amount=bad_amount)], [])

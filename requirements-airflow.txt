@@ -1,0 +1,7 @@
+# Versions shared with Airflow are selected from the official Airflow 2.10.5
+# Python 3.11 constraints set. Keep apache-airflow itself pinned in Dockerfile
+# so pip cannot silently replace the version supplied by the base image.
+duckdb==1.1.3
+pandas==2.1.4
+pytest==8.3.4
+ruff==0.5.5

@@ -18,14 +18,12 @@ models:
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: [pending, paid, shipped, delivered, cancelled, refunded]
+              values: [pending, paid, shipped, delivered, cancelled, refunded]
       - name: channel
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: [web, shopee, lazada]
+              values: [web, shopee, lazada]
 
   - name: rejected_orders
     config:
@@ -36,8 +34,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: [missing_order_id, unparseable_timestamp, amount_null_or_invalid, amount_negative]
+              values: [missing_order_id, unparseable_timestamp, amount_null_or_invalid, amount_negative]
 
   - name: stg_order_items
     config:

@@ -12,8 +12,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              arguments:
-                values: [facebook, google, tiktok, organic]
+              values: [facebook, google, tiktok, organic]
       - name: spend_thb
         tests: [not_null]
 

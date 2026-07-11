@@ -70,38 +70,78 @@ def run_matching(con: duckdb.DuckDBPyConnection) -> None:
             SELECT * FROM recon.norm_ledger WHERE posting_seq = 1
         ),
 
+        rule1_gateway AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref, amount, txn_date ORDER BY txn_id
+            ) AS pair_rank
+            FROM recon.norm_gateway
+        ),
+        rule1_ledger AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref, amount, entry_date ORDER BY entry_id
+            ) AS pair_rank
+            FROM ledger_canon
+        ),
         rule1 AS (
-            SELECT g.txn_id, l.entry_id, g.ref, g.amount AS gateway_amount,
-                   l.amount AS ledger_amount, g.txn_date,
+            SELECT g.txn_id, l.entry_id, g.ref,
+                   g.amount AS gateway_amount, l.amount AS ledger_amount, g.txn_date,
                    'exact' AS match_type, 1.00 AS match_confidence
-            FROM recon.norm_gateway g
-            JOIN ledger_canon l
+            FROM rule1_gateway g
+            JOIN rule1_ledger l
               ON g.ref = l.ref AND g.amount = l.amount AND g.txn_date = l.entry_date
+             AND g.pair_rank = l.pair_rank
         ),
 
+        rule2_gateway AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref, amount ORDER BY txn_date, txn_id
+            ) AS pair_rank
+            FROM recon.norm_gateway
+            WHERE txn_id NOT IN (SELECT txn_id FROM rule1)
+        ),
+        rule2_ledger AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref, amount ORDER BY entry_date, entry_id
+            ) AS pair_rank
+            FROM ledger_canon
+            WHERE entry_id NOT IN (SELECT entry_id FROM rule1)
+        ),
         rule2 AS (
-            SELECT g.txn_id, l.entry_id, g.ref, g.amount, l.amount, g.txn_date,
-                   'date_boundary', 0.95
-            FROM recon.norm_gateway g
-            JOIN ledger_canon l ON g.ref = l.ref AND g.amount = l.amount
-            WHERE g.txn_id NOT IN (SELECT txn_id FROM rule1)
-              AND l.entry_id NOT IN (SELECT entry_id FROM rule1)
+            SELECT g.txn_id, l.entry_id, g.ref,
+                   g.amount AS gateway_amount, l.amount AS ledger_amount, g.txn_date,
+                   'date_boundary' AS match_type, 0.95 AS match_confidence
+            FROM rule2_gateway g
+            JOIN rule2_ledger l
+              ON g.ref = l.ref AND g.amount = l.amount AND g.pair_rank = l.pair_rank
         ),
 
+        rule3_gateway AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref ORDER BY amount NULLS LAST, txn_date, txn_id
+            ) AS pair_rank
+            FROM recon.norm_gateway
+            WHERE txn_id NOT IN (SELECT txn_id FROM rule1 UNION ALL SELECT txn_id FROM rule2)
+        ),
+        rule3_ledger AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY ref ORDER BY amount NULLS LAST, entry_date, entry_id
+            ) AS pair_rank
+            FROM ledger_canon
+            WHERE entry_id NOT IN (SELECT entry_id FROM rule1 UNION ALL SELECT entry_id FROM rule2)
+        ),
         rule3 AS (
-            SELECT g.txn_id, l.entry_id, g.ref, g.amount, l.amount, g.txn_date,
+            SELECT g.txn_id, l.entry_id, g.ref,
+                   g.amount AS gateway_amount, l.amount AS ledger_amount, g.txn_date,
                    CASE
                        WHEN abs((g.amount - l.amount) - g.fee) < {FEE_TOLERANCE}
                            THEN 'fee_timing'
                        WHEN abs(g.amount - l.amount) <= {ROUNDING_TOLERANCE}
                            THEN 'rounding'
                        ELSE 'amount_other'
-                   END,
-                   0.80
-            FROM recon.norm_gateway g
-            JOIN ledger_canon l ON g.ref = l.ref
-            WHERE g.txn_id NOT IN (SELECT txn_id FROM rule1 UNION ALL SELECT txn_id FROM rule2)
-              AND l.entry_id NOT IN (SELECT entry_id FROM rule1 UNION ALL SELECT entry_id FROM rule2)
+                   END AS match_type,
+                   0.80 AS match_confidence
+            FROM rule3_gateway g
+            JOIN rule3_ledger l ON g.ref = l.ref AND g.pair_rank = l.pair_rank
         ),
 
         matched_so_far AS (
@@ -173,6 +213,32 @@ def run_matching(con: duckdb.DuckDBPyConnection) -> None:
             UNION ALL SELECT * FROM dup_postings
         )
     """)
+
+    duplicate_assignments = con.execute("""
+        SELECT count(*) FROM (
+            SELECT txn_id FROM recon.recon_results
+            WHERE txn_id IS NOT NULL GROUP BY txn_id HAVING count(*) > 1
+            UNION ALL
+            SELECT entry_id FROM recon.recon_results
+            WHERE entry_id IS NOT NULL GROUP BY entry_id HAVING count(*) > 1
+        )
+    """).fetchone()[0]
+    if duplicate_assignments:
+        raise RuntimeError(
+            f"reconciliation invariant violated: {duplicate_assignments} records assigned more than once"
+        )
+
+    matchable_residuals = con.execute("""
+        SELECT count(*)
+        FROM recon.recon_results g
+        JOIN recon.recon_results l ON g.ref = l.ref
+        WHERE g.match_type = 'missing_in_ledger'
+          AND l.match_type = 'missing_in_gateway'
+    """).fetchone()[0]
+    if matchable_residuals:
+        raise RuntimeError(
+            f"reconciliation maximality invariant violated: {matchable_residuals} same-ref pairs remain"
+        )
 
     log.info("building daily summary")
     con.execute("""

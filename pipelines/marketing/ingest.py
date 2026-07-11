@@ -43,16 +43,36 @@ def load_ad_file(con: duckdb.DuckDBPyConnection, path: Path, file_date: date) ->
         c for c in CONNECTORS if path.name.startswith(c.file_pattern.split("{")[0])
     )
     frame = connector.parse(path)  # noqa: F841 — duckdb resolves `frame` by name below
-    con.execute("DELETE FROM raw.ad_performance WHERE _source_file = ?", [path.name])
-    con.execute(
-        "INSERT INTO raw.ad_performance "
-        "SELECT *, ? AS _source_file, now() AS _ingested_at FROM frame",
-        [path.name],
-    )
-    rows = con.execute(
-        "SELECT count(*) FROM raw.ad_performance WHERE _source_file = ?", [path.name]
-    ).fetchone()[0]
-    _log_load(con, path.name, "ad_performance", file_date, rows)
+    con.execute("CREATE OR REPLACE TEMP TABLE incoming_ad_performance AS SELECT * FROM frame")
+    expected = [
+        row[1]
+        for row in con.execute("PRAGMA table_info('raw.ad_performance')").fetchall()
+        if row[1] not in {"_source_file", "_ingested_at"}
+    ]
+    received = [
+        row[1]
+        for row in con.execute("PRAGMA table_info('incoming_ad_performance')").fetchall()
+    ]
+    if received != expected:
+        raise ValueError(
+            f"schema mismatch for {path.name}: expected {expected}, received {received}"
+        )
+    rows = con.execute("SELECT count(*) FROM incoming_ad_performance").fetchone()[0]
+
+    con.execute("BEGIN TRANSACTION")
+    try:
+        con.execute("DELETE FROM raw.ad_performance WHERE _source_file = ?", [path.name])
+        columns = ", ".join(expected)
+        con.execute(
+            f"INSERT INTO raw.ad_performance ({columns}, _source_file, _ingested_at) "
+            f"SELECT {columns}, ?, now() FROM incoming_ad_performance",
+            [path.name],
+        )
+        _log_load(con, path.name, "ad_performance", file_date, rows)
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
     log.info("loaded %s -> raw.ad_performance (%d rows)", path.name, rows)
     return rows
 

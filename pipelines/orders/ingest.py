@@ -63,19 +63,38 @@ def _log_load(
 
 def load_daily_file(con: duckdb.DuckDBPyConnection, path: Path, table: str, file_date: date) -> int:
     """Replace one file's partition in raw.<table>. Returns rows loaded."""
-    con.execute(f"DELETE FROM raw.{table} WHERE _source_file = ?", [path.name])
+    stage = f"incoming_{table}"
     con.execute(
-        f"""
-        INSERT INTO raw.{table}
-        SELECT *, ? AS _source_file, now() AS _ingested_at
-        FROM read_csv(?, all_varchar = true, header = true)
-        """,
-        [path.name, str(path)],
+        f"CREATE OR REPLACE TEMP TABLE {stage} AS "
+        "SELECT * FROM read_csv(?, all_varchar = true, header = true)",
+        [str(path)],
     )
-    rows = con.execute(
-        f"SELECT count(*) FROM raw.{table} WHERE _source_file = ?", [path.name]
-    ).fetchone()[0]
-    _log_load(con, path.name, table, file_date, rows)
+    expected = [
+        row[1]
+        for row in con.execute(f"PRAGMA table_info('raw.{table}')").fetchall()
+        if row[1] not in {"_source_file", "_ingested_at"}
+    ]
+    received = [row[1] for row in con.execute(f"PRAGMA table_info('{stage}')").fetchall()]
+    if received != expected:
+        raise ValueError(
+            f"schema mismatch for {path.name}: expected {expected}, received {received}"
+        )
+    rows = con.execute(f"SELECT count(*) FROM {stage}").fetchone()[0]
+
+    con.execute("BEGIN TRANSACTION")
+    try:
+        con.execute(f"DELETE FROM raw.{table} WHERE _source_file = ?", [path.name])
+        columns = ", ".join(expected)
+        con.execute(
+            f"INSERT INTO raw.{table} ({columns}, _source_file, _ingested_at) "
+            f"SELECT {columns}, ?, now() FROM {stage}",
+            [path.name],
+        )
+        _log_load(con, path.name, table, file_date, rows)
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
     log.info("loaded %s -> raw.%s (%d rows)", path.name, table, rows)
     return rows
 
