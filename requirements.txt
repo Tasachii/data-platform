@@ -6,3 +6,12 @@ pandas==3.0.3
 pytest==9.1.1
 ruff==0.15.20
 dbt-duckdb==1.10.1
+# dbt-core only loosely constrains these (e.g. dbt-adapters<2.0,>=1.15.5),
+# so without explicit pins pip is free to resolve a newer combination on
+# every fresh install. Pinned to what's actually installed/tested here.
+dbt-core==1.11.12
+dbt-common==1.38.0
+dbt-adapters==1.24.2
+dbt-extractor==0.6.0
+dbt-semantic-interfaces==0.9.0
+dbt-protos==1.0.514

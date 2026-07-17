@@ -1,5 +1,8 @@
 # dbt 1.7 is the newest dbt-duckdb line compatible with Airflow 2.10.5's
 # protobuf 4 constraint. pathspec 0.11 satisfies both applications.
 dbt-duckdb==1.7.5
+dbt-core==1.7.19
+dbt-extractor==0.5.1
+dbt-semantic-interfaces==0.4.4
 pathspec==0.11.2
 protobuf==4.25.6

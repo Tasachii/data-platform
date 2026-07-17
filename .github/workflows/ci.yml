@@ -39,3 +39,61 @@ jobs:
 
       - name: Run test suite
         run: pytest tests/ -v
+
+  # Publishes the dbt docs site (lineage graph + catalog) to GitHub Pages.
+  # Only runs after tests pass on main — PRs don't get pages/id-token
+  # permissions and shouldn't publish docs before a merge.
+  dbt-docs-build:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate sample data (3 days, small volume for CI speed)
+        run: |
+          python generator/generate_orders.py --days 3 --orders-per-day 2000
+          python generator/generate_payments.py --days 3
+          python generator/generate_marketing.py --days 3
+
+      - name: Build the warehouse (ingest -> dbt build, all three pipelines)
+        run: |
+          python pipelines/orders/run_pipeline.py --all --skip-tests
+          python pipelines/reconciliation/run_recon.py --all
+          python pipelines/marketing/run_marketing.py --all
+
+      - name: Generate dbt docs (lineage graph + catalog)
+        run: dbt docs generate --project-dir dbt --profiles-dir dbt
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dbt/target
+
+  dbt-docs-deploy:
+    needs: dbt-docs-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
