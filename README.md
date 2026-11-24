@@ -28,9 +28,9 @@ a minute of compute.
 
 ## Status
 
-All three pipelines are **implemented and tested** end to end: 65 pytest tests
+All three pipelines are **implemented and tested** end to end: 76 pytest tests
 (idempotency by checksum, 100%-recall edge-case coverage, per-rule matching
-units, connector units) plus 52 dbt schema/data tests, all green in CI on
+units, connector units) plus 53 dbt schema/data tests, all green in CI on
 every push. The Airflow DAGs have been executed to completion inside the
 Docker stack (`airflow dags test`, state=success).
 
@@ -99,9 +99,9 @@ generator/                            DuckDB warehouse (warehouse/platform.duckd
 | `pipelines/orders/` | Idempotent ingest, runner, business report | Python · DuckDB |
 | `pipelines/reconciliation/` | 5-rule waterfall matching engine, alerting | Python · DuckDB SQL |
 | `pipelines/marketing/` | Per-platform connectors, late-file backfill, growth report | Python · DuckDB |
-| `dbt/` | 19 models · 2 identity seeds · 52 schema/data tests | dbt-duckdb |
+| `dbt/` | 20 models · 2 identity seeds · 53 schema/data tests | dbt-duckdb |
 | `dags/` | `orders_daily` · `recon_daily` · `marketing_daily` | Airflow 2.10 · Docker Compose |
-| `tests/` | 65 tests: quality, recall, idempotency, per-rule units | pytest |
+| `tests/` | 76 tests: quality, recall, idempotency, per-rule units | pytest |
 
 Design decisions worth noting (each has a full ADR in `docs/decisions/`):
 
@@ -224,10 +224,10 @@ pytest tests/
 ruff check .
 ```
 
-65 tests: structural data quality (uniqueness, referential integrity, money
+76 tests: structural data quality (uniqueness, referential integrity, money
 reconciled across layers), manifest-driven recall of every injected edge case,
-full-pipeline idempotency by checksum, 15 per-rule unit tests for the matching
-waterfall and 3 connector unit tests on in-memory fixtures. dbt adds 52
+full-pipeline idempotency by checksum, 22 per-rule unit tests for the matching
+waterfall and 3 connector unit tests on in-memory fixtures. dbt adds 53
 schema/data tests inside `dbt build`. CI (GitHub Actions) regenerates a 3-day
 sample and runs the whole platform — generators, all three pipelines, every
 test — on each push.
