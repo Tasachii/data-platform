@@ -6,10 +6,11 @@ __pycache__/
 
 # Data files — regenerate with `python generator/generate_orders.py`
 raw/
-warehouse/*.duckdb
-warehouse/*.duckdb.wal
+*.duckdb
+*.duckdb.wal
 
 # dbt
+dbt/.user.yml
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
@@ -20,6 +21,9 @@ airflow/logs/
 airflow/plugins/
 
 # Local tool state
+.vercel/
+.env
+.env.local
 .omc/
 
 # Regenerable bulk outputs — the markdown summaries stay tracked

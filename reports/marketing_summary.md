@@ -8,37 +8,37 @@ _for what that deliberately over- and under-counts._
 
 | Total spend | Attributed revenue | Blended ROAS |
 |---|---|---|
-| 43,153,784.35 | 2,037,628,285.44 | 47.22 |
+| 3,995,635.73 | 204,803,918.53 | 51.26 |
 
 ## By channel
 
 | Platform | Spend | Attributed orders | Attributed revenue | ROAS |
 |---|---|---|---|---|
-| tiktok | 8,185,005.86 | 45,963 | 510,276,493.53 | 62.34 |
-| google | 15,290,143.04 | 64,340 | 716,886,188.63 | 46.89 |
-| facebook | 19,678,635.45 | 73,253 | 810,465,603.28 | 41.19 |
-| organic | 0.00 | 61,100 | 674,651,119.26 | — |
+| tiktok | 836,940.15 | 4,670 | 51,571,107.95 | 61.62 |
+| google | 1,485,090.24 | 6,512 | 72,814,663.03 | 49.03 |
+| facebook | 1,673,605.34 | 7,236 | 80,418,147.55 | 48.05 |
+| organic | 0.00 | 6,140 | 68,136,564.26 | — |
 
 ## By campaign (cross-platform canonical)
 
 | Campaign | Platforms | Spend | Orders | Revenue | ROAS |
 |---|---|---|---|---|---|
-| brand-awareness | 2 | 3,040,742.79 | 15,096 | 168,512,400.69 | 55.42 |
-| app-install | 2 | 2,766,581.10 | 13,698 | 152,976,299.33 | 55.29 |
-| kol-collab | 1 | 1,169,084.35 | 5,743 | 63,044,719.18 | 53.93 |
-| flash-friday | 3 | 5,295,840.16 | 22,730 | 253,743,648.10 | 47.91 |
-| mega-sale-66 | 3 | 5,347,022.52 | 22,948 | 252,957,449.93 | 47.31 |
-| free-shipping | 3 | 5,355,789.64 | 22,736 | 252,817,978.12 | 47.20 |
-| payday-blast | 3 | 5,572,226.19 | 22,914 | 254,391,969.13 | 45.65 |
-| retargeting-cart | 2 | 4,294,174.85 | 17,289 | 191,836,885.45 | 44.67 |
-| midyear-clearance | 3 | 5,762,218.98 | 23,193 | 256,571,779.97 | 44.53 |
-| new-arrivals | 2 | 4,550,103.77 | 17,209 | 190,775,155.54 | 41.93 |
-| organic | 0 | 0.00 | 61,100 | 674,651,119.26 | — |
+| kol-collab | 1 | 92,362.24 | 590 | 6,290,511.01 | 68.11 |
+| new-arrivals | 2 | 324,835.26 | 1,813 | 19,825,290.77 | 61.03 |
+| flash-friday | 3 | 473,721.22 | 2,274 | 26,237,212.14 | 55.39 |
+| free-shipping | 3 | 465,142.85 | 2,289 | 25,487,019.32 | 54.79 |
+| brand-awareness | 2 | 339,409.42 | 1,560 | 17,429,624.46 | 51.35 |
+| payday-blast | 3 | 495,353.25 | 2,277 | 25,230,257.70 | 50.93 |
+| app-install | 2 | 324,724.43 | 1,406 | 15,759,349.52 | 48.53 |
+| mega-sale-66 | 3 | 517,207.73 | 2,244 | 25,046,525.61 | 48.43 |
+| retargeting-cart | 2 | 410,841.21 | 1,710 | 18,831,637.07 | 45.84 |
+| midyear-clearance | 3 | 552,038.12 | 2,255 | 24,666,490.93 | 44.68 |
+| organic | 0 | 0.00 | 6,140 | 68,136,564.26 | — |
 
 ## Data quality notes
 
 - All platform files delivered for all loaded dates.
-- 13 ad rows report conversions as "N/A" — their spend is
+- 7 ad rows report conversions as "N/A" — their spend is
   counted, their platform-conversion column is not.
 - `organic` rows carry revenue with zero spend by definition; blended ROAS
   excludes them.
