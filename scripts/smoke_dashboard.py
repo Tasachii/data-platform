@@ -53,6 +53,34 @@ def check_number_type(page):
     assert max(gap_right_edges) - min(gap_right_edges) < 0.1, gap_right_edges
 
 
+def check_no_page_overflow(page):
+    audit = page.evaluate(
+        """() => {
+          const viewportWidth = innerWidth;
+          const rootWidth = document.documentElement.scrollWidth;
+          const clipsOverflow = node => {
+            for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+              if (["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(parent).overflowX)) return true;
+            }
+            return false;
+          };
+          const offenders = [...document.querySelectorAll("body *")].flatMap(node => {
+            const rect = node.getBoundingClientRect();
+            if (!rect.width || clipsOverflow(node) || (rect.left >= -0.5 && rect.right <= viewportWidth + 0.5)) return [];
+            return [{
+              element: node.id ? `#${node.id}` : node.className ? `${node.tagName.toLowerCase()}.${String(node.className).replaceAll(" ", ".")}` : node.tagName.toLowerCase(),
+              left: Math.round(rect.left * 100) / 100,
+              right: Math.round(rect.right * 100) / 100,
+              width: Math.round(rect.width * 100) / 100,
+              text: node.textContent.trim().slice(0, 80),
+            }];
+          }).slice(0, 12);
+          return { viewportWidth, rootWidth, offenders };
+        }"""
+    )
+    assert audit["rootWidth"] <= audit["viewportWidth"], json.dumps(audit, ensure_ascii=False)
+
+
 def check_report(page, data):
     sales = data["sales"]
     check_sales_total(page, sales)
@@ -85,7 +113,7 @@ def check_report(page, data):
     )
     if page.viewport_size["width"] < 560:
         expect(source.locator(".mobile-label").first).to_be_visible()
-        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        check_no_page_overflow(page)
         assert source.evaluate("row => row.getBoundingClientRect().right <= innerWidth")
     channel = page.get_by_role("combobox", name="Sales channel")
     channel.select_option("shopee")

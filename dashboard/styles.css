@@ -211,6 +211,7 @@ select {
 .card,.trend {
   padding: clamp(18px,2.3vw,32px);
   border-radius: 16px;
+  min-inline-size: 0;
 }
 
 .card {
@@ -348,7 +349,13 @@ summary {
 }
 
 .scroll {
+  max-inline-size: 100%;
+  min-inline-size: 0;
   overflow-x: auto;
+}
+
+.scroll table {
+  min-width: max-content;
 }
 
 .ledger h3 {
@@ -570,7 +577,7 @@ footer p,footer a {
   }
 
   .sales-layout,.pair {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0,1fr);
   }
 
   .intro {
