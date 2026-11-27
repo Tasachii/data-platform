@@ -6,7 +6,9 @@ I built this project to understand what happens to a sales report when a shop ge
 
 ## Explore the dashboard
 
-Serve the checked-in snapshot from the repository root with Python, then open `http://localhost:8000`.
+[Open the live commerce dashboard](https://data-platform-amber.vercel.app/).
+
+For a local preview, serve the checked-in snapshot from the repository root with Python, then open `http://localhost:8000`.
 
 ```bash
 python3 -m http.server 8000 --bind 127.0.0.1 --directory dashboard
@@ -79,7 +81,7 @@ node --check dashboard/app.js
 dbt docs generate --project-dir dbt --profiles-dir dbt
 ```
 
-The dashboard build passed all **79 pytest cases**. The dbt manifest contains **20 models, 53 data tests and 2 seeds**. The three-day CI recipe exercises late delivery and skips the volume-history check, which requires at least eight days. Full commands, counts, limitations and the snapshot checksum are in the [publication handoff](PUBLICATION_HANDOFF.md).
+The dashboard build passed all **81 pytest cases**. The dbt manifest contains **20 models, 53 data tests and 2 seeds**. The three-day CI recipe exercises late delivery and skips the volume-history check, which requires at least eight days. A separate CI job runs a Playwright Chromium smoke against the checked-in dashboard, covering first render, filters and empty states. Full commands, counts, limitations and the snapshot checksum are in the [publication handoff](PUBLICATION_HANDOFF.md).
 
 ## License
 

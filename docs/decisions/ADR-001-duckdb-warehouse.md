@@ -15,7 +15,7 @@ DuckDB, as a single file at `warehouse/platform.duckdb`.
 ## Consequences
 
 - The original 30-day ingest, dbt build and pytest run took ~30s locally.
-  CI runs the same pipeline with a pytest suite that now has 76 cases — no cloud credentials anywhere.
+  CI runs the pipeline against generated data. The [README verification section](../../README.md#verification) records the current test counts.
 - **Single-writer**: Airflow DAGs must set `max_active_runs=1`; concurrent
   backfill runs would fight over the file. This is the main scaling limit and
   it is documented, not hidden.

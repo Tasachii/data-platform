@@ -1,6 +1,6 @@
 # Publication handoff
 
-The static demo is ready for Test3 to review locally. Lead owns the GitHub push, Vercel project and public URL. The Vercel artifact consists of four files under [dashboard/](dashboard/). The JSON contains aggregate measures and dates. Raw feeds, manifests with record IDs, the unmatched queue, DuckDB and Airflow stay outside the site.
+Lead verified HTTP 200 for the production deployment of `9e4606d`. The four dashboard files still match that commit. [Open the production dashboard](https://data-platform-amber.vercel.app/). The Vercel artifact consists of four files under [dashboard/](dashboard/). The JSON contains aggregate measures and dates. Raw feeds, manifests with record IDs, the unmatched queue, DuckDB and Airflow stay outside the site.
 
 ## Published sample
 
@@ -40,15 +40,15 @@ To export an existing complete simulation, point the exporter at its DuckDB file
 python scripts/export_dashboard.py --db warehouse/platform.duckdb --output /tmp/commerce-local.json
 ```
 
-The full sample passed **79 pytest cases**, including original order, matching, connector and marketing checks. Export coverage compares public totals with staging/raw tables, tests repeat exports and checks the committed JSON field allowlist. Markdown path checks resolved all 23 local references in the README, handoff and orders guide at preflight. The public directory inspection found no order references, emails or credential markers. Git listed no raw feeds, queue CSVs or database files. The orders dbt build passed 49 nodes, and the marketing build passed 49 nodes. The selections share dependencies. The manifest contains **53 distinct data tests, 20 models and 2 seeds**.
+The full sample passed **81 pytest cases**, including original order, matching, connector and marketing checks. Export coverage compares public totals with staging/raw tables, tests repeat exports and checks the committed JSON field allowlist. Relative Markdown links in the release documents resolve locally. The public directory inspection found no order references, emails or credential markers. Git listed no raw feeds, queue CSVs or database files. The orders dbt build passed 49 nodes, and the marketing build passed 49 nodes. The selections share dependencies. The manifest contains **53 distinct data tests, 20 models and 2 seeds**.
 
-The [CI recipe](.github/workflows/ci.yml) also ran locally with a fresh three-day, 6,000-order sample. It passed **78 tests with one skip**. The trailing-volume test needs eight days. Backfilling TikTok and rerunning the two export tests passed. `dbt docs generate --project-dir dbt --profiles-dir dbt` produced the catalog. The existing Pages jobs still publish dbt docs after a successful main-branch run.
+The [CI recipe](.github/workflows/ci.yml) also ran locally with a fresh three-day, 6,000-order sample. It passed **80 tests with one skip**. The trailing-volume test needs eight days. Backfilling TikTok and rerunning the two export tests passed. `dbt docs generate --project-dir dbt --profiles-dir dbt` produced the catalog. The existing Pages jobs still publish dbt docs after a successful main-branch run.
 
 ## Airflow compatibility
 
 The Docker image built with Airflow 2.10.5, DuckDB 1.1.3 and dbt-core 1.7.19. Its final pip check reported `No broken requirements found`. The DAG test used temporary copies of the project and three-day source files, a container-built warehouse, SQLite test metadata and disabled networking. The Compose configuration validated separately. This exercises DAG tasks and dependencies without starting the webserver, Postgres or a persistent scheduler.
 
-The initial orders retry exposed a duplicate primary-key exception on `meta.ingest_log.file_name`. The corrected upsert let the same dated load finish. A fresh container then repeated the three pipelines and all three DAG tests against the existing scratch warehouse without a retry. Each command below reported `state=success` for the June 28 logical date. The in-container orders quality gate passed 78 tests and skipped the short-history check.
+The initial orders retry exposed a duplicate primary-key exception on `meta.ingest_log.file_name`. The corrected upsert let the same dated load finish. A fresh container then repeated the three pipelines and all three DAG tests against the existing scratch warehouse without a retry. Each command below reported `state=success` for the June 28 logical date. At the initial preflight, the in-container orders quality gate passed 78 tests and skipped the short-history check. After the Test3 fix, all 25 CLI and matching-rule regression cases also passed in the pinned Airflow image.
 
 ```bash
 docker build -t data-platform-dev3-preflight:local .
@@ -69,6 +69,28 @@ airflow dags test recon_daily 2026-06-28
 airflow dags test marketing_daily 2026-06-28
 ```
 
+## Test3 release-blocker retest
+
+On the earlier code, the CLI returned success for a directory containing only a ฿12,500 ledger delivery but wrote no daily summary row. The new CLI regressions exposed that failure before the fix. Both `--all` entry points now discover sorted, distinct file dates from both sources. Public payment coverage counts the same union in the ingest log. A payment date with no gateway denominator displays a dash in the Markdown report.
+
+```bash
+python -m pytest -q tests/test_reconciliation_cli.py tests/test_matching_rules.py
+```
+
+The two CLI cases each start with one CSV and an empty warehouse. Each runs `pipelines/reconciliation/run_recon.py --all` twice and checks the signed balance, missing-side classification, exact alert set, report and follow-up CSV. The same 25 tests passed on local DuckDB 1.5.4 and container DuckDB 1.1.3.
+
+A separate probe used a disposable warehouse copy and four new files covering three dates. Two CLI runs and two exports produced these results on both passes.
+
+| UTC source date | Delivery | Gateway / ledger rows | Signed gap | Critical alerts |
+|---|---|---:|---:|---|
+| July 8, 2026 | Gateway only | 1 / 0 | +฿25,000 | Low match rate, settlement gap |
+| July 9, 2026 | Ledger only | 0 / 1 | −฿15,000 | Settlement gap |
+| July 10, 2026 | Both, with matching references | 1 / 1 | ฿0 | None |
+
+The probe export counted 10 payment file dates across the seven original and three new dates. The committed simulation has both deliveries on each of its seven payment dates. Clean rebuilds of that sample retain the published checksum.
+
+`docker compose config --format json` resolved the only published port to TCP host `127.0.0.1:8080` and container port `8080`. The local Airflow demo keeps its existing credentials on that loopback binding.
+
 ## Findings addressed
 
 | Finding | Change and evidence |
@@ -83,6 +105,16 @@ airflow dags test marketing_daily 2026-06-28
 
 ## Browser preflight
 
+The independent `dashboard-smoke` CI job uses Microsoft Playwright 1.60.0 and its matching Chromium headless shell. The script serves the four committed site files on a temporary loopback port, compares the first-render and Shopee totals to the JSON, then selects the first seven days and checks both empty states. This exact script passed locally with all four HTTP requests returning 200 and no uncaught page error. Lead traced the hosted failure in run 46037896760 to `ubuntu-latest` resolving to 26.04. The job now pins `ubuntu-24.04`, which the Playwright 1.60.0 release explicitly lists for Chromium dependencies. Lead owns the hosted CI recheck. [Failed run](https://github.com/Tasachii/data-platform/actions/runs/46037896760) · [Playwright 1.60.0 Ubuntu dependencies](https://github.com/microsoft/playwright/blob/v1.60.0/packages/playwright-core/src/server/registry/nativeDeps.ts#L452-L473) · [Playwright CI installation](https://playwright.dev/python/docs/ci)
+
+To repeat in a separate Python environment, run these commands from the repository root. Linux CI adds `--with-deps` to the browser install.
+
+```bash
+python -m pip install playwright==1.60.0
+python -m playwright install --only-shell chromium
+python scripts/smoke_dashboard.py
+```
+
 Serve `dashboard/` over HTTP and open it in a browser.
 
 ```bash
@@ -94,18 +126,17 @@ Chromium rendered the full snapshot at 1400 × 940 and 375 × 812. The mobile do
 | Craft QA angle | Score | Five checks |
 |---|---:|---|
 | CTO | 8/10 | ✓ defined scope · ✓ aggregate data boundary · ✓ reproducible setup · ✓ static serving · ✓ repository license |
-| Tech lead | 8/10 | ✓ readable queries · ✓ separate export and UI · ✓ source-total checks · ✓ lint · ⚠ browser flow checked locally |
+| Tech lead | 8/10 | ✓ readable queries · ✓ separate export and UI · ✓ source-total checks · ✓ lint · ✓ browser smoke job with a local pass |
 | UX/UI | 8/10 | ✓ chart hierarchy · ✓ scoped filters · ⚠ keyboard checks only, no screen-reader session · ✓ metric definitions · ✓ small-screen and empty states |
-| QA | 8/10 | ✓ static smoke · ✓ warehouse-to-browser flow · ✓ late/empty/ledger-only cases · ✓ failed fetch · ⚠ hosted verification pending |
+| QA | 8/10 | ✓ static smoke · ✓ warehouse-to-browser flow · ✓ late/empty/ledger-only cases · ✓ failed fetch · ⚠ runner-pin CI recheck pending |
 
-Overall preflight **8/10**. Local checks cover the static publication path. Public routing and access still require a real deployed URL.
+Overall preflight **8/10**. Local checks cover the static publication path. Lead confirmed production HTTP access. The runner-pin CI recheck and independent Test3 retest are pending.
 
 ## Hosting and remaining limits
 
-1. After Test3 reviews the local changes, Lead can push the approved commits and import `Tasachii/data-platform` into Vercel.
-2. Choose project root `dashboard`, framework **Other**, an empty build-command override and output directory `.`. The site needs no install step or environment variables. [Vercel static build settings](https://vercel.com/docs/builds/configure-a-build)
-3. Open the production URL signed out. Verify the headline, a filter change, and `/data/snapshot.json` against the SHA-256 above. Record the verified public URL in the README.
-4. Check the GitHub Actions CI and Pages jobs on the published commit. Pages serves the dbt catalog and lineage.
+To reproduce the static deployment on Vercel, set the project root to `dashboard/`, select **Other**, leave the build command empty and use output directory `.`. Lead handles GitHub pushes, Vercel publication and the hosted CI recheck. GitHub Pages serves the separate dbt catalog and lineage. [Vercel static build settings](https://vercel.com/docs/builds/configure-a-build)
+
+For a future snapshot release, open the production site signed out, verify the headline and a filter change, and compare the checksum of `/data/snapshot.json` with the recorded hash.
 
 The site is a fixed synthetic snapshot. A new warehouse run reaches the public site only after export and publication. Attribution uses one simulated UTM assignment per eligible order. Platform-local ad days and Bangkok order dates can differ at boundaries. The high ROAS comes from generator assumptions and should not be interpreted as an observed business return. Alerts are simulated business signals. The alert table and report are the delivery endpoints.
 

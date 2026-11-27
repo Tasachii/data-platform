@@ -80,5 +80,5 @@ order ปกติมีแถวเดียว (`delivered`, is_current=true) 
    ของความสกปรกทุกแถว แล้วให้ test suite พิสูจน์ recall 100%
 4. รัน pipeline สองรอบแล้ว diff — สิ่งที่ "กะพริบ" คือครูที่ดีที่สุด
 
-โค้ดทั้งหมด (pipeline, dbt models, Airflow DAGs, pytest 76 เคส) อยู่ใน repo
-`data-platform` พร้อม ADR อธิบายทุก decision ครับ
+โค้ด pipeline, dbt models, Airflow DAGs และชุดทดสอบอยู่ใน repo `data-platform` ครับ
+ดูจำนวนเคสและผลทดสอบล่าสุดได้ที่ [หัวข้อ Verification ใน README](../../README.md#verification)
