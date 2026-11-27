@@ -14,7 +14,7 @@ The dashboard uses **60,000 simulated orders** from June 1–30, 2026 (2,000 per
 
 - **Sales.** I count an order with three items once and add up the value of all three items. If the shop later refunds that order, its value comes out of net sales on the original sale date. [Order pipeline](pipelines/orders/README.md) · [Refund example in Thai](docs/blog/refund-restatement-th.md)
 - **Payments.** The pipeline compares what the gateway recorded with what the shop posted to its ledger. It checks fees, rounding and payments posted after midnight. A payment recorded on only one side appears in the follow-up report. [Matching rules](pipelines/reconciliation/README.md)
-- **Marketing.** Each eligible order gives all its net revenue to one source. For example, an order tagged as Google counts toward Google’s revenue. An order with no campaign source counts as organic. Return on ad spend divides credited revenue by ad spend. Both the tags and spend are simulated, and each platform reports spending in its own time zone. [Marketing assumptions](pipelines/marketing/README.md)
+- **Marketing.** I credit each eligible order to one source. For example, if an order carries a Google tag, I count its net sales under Google. The tag alone cannot tell me whether an ad led to the sale. An order with no campaign source counts as organic. Return on ad spend divides credited revenue by ad spend. Both the tags and spend are simulated, and each platform reports spending in its own time zone. [Marketing assumptions](pipelines/marketing/README.md)
 
 ## Run it locally
 
