@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#103f44">
+  <meta name="description" content="Explore simulated Thai commerce sales, payment exceptions and marketing attribution from a verified warehouse snapshot.">
+  <title>Siam Dispatch · Commerce overview</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to report</a>
+<header><div class="bar">
+  <a class="brand" href="#main"><i class="mark" aria-hidden="true"></i>Siam Dispatch</a>
+  <nav aria-label="Report sections"><a href="#sales">Sales</a><a href="#payments">Payments</a><a href="#attribution">Attribution</a></nav>
+  <a class="source" href="https://github.com/Tasachii/data-platform">Source code ↗</a>
+</div></header>
+<main id="main">
+  <section class="intro">
+    <div><div class="tag"><i></i>Synthetic data</div><h1>Commerce overview</h1><p>Orders, payments and ad performance across a simulated Thai retailer.</p></div>
+    <label class="control">Reporting window<select id="window" disabled><option value="all">Full snapshot</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="first">First 7 days</option></select></label>
+  </section>
+  <p id="status" role="status">Loading warehouse snapshot…</p><noscript>Enable JavaScript to explore the report.</noscript>
+  <div id="report" hidden>
+    <section id="sales" class="sales-layout" aria-label="Order sales">
+      <article class="trend">
+        <div class="panel-head"><div><span class="kicker">Sales performance</span><h2>Net revenue</h2></div><label class="sr" for="channel">Sales channel</label><select id="channel" aria-label="Sales channel"></select></div>
+        <strong class="headline" id="net"></strong>
+        <div class="scope" id="sales-scope"></div>
+        <div class="chart" id="trend"></div>
+        <div class="inspect" id="inspect" aria-live="polite"></div>
+        <details><summary>Daily figures</summary><div id="sales-table" class="scroll"></div></details>
+      </article>
+      <article class="card ledger">
+        <span class="kicker">Order ledger</span><h2>Sales breakdown</h2>
+        <div id="ledger"></div>
+        <h3>Share across all channels</h3><div id="channels"></div>
+      </article>
+    </section>
+    <section id="payments" class="domain">
+      <div class="domain-title"><h2>Payment reconciliation</h2><p id="recon-scope"></p></div>
+      <div class="pair">
+        <article class="card"><div class="panel-head"><h3>Settlement gap</h3><span class="unit">THB · UTC</span></div>
+          <p>Daily gateway amount minus ledger amount.</p><div id="gaps"></div></article>
+        <article class="card"><div class="panel-head"><h3>Triggered alerts</h3><label class="sr" for="severity">Alert severity</label><select id="severity"><option value="all">All severities</option><option value="CRITICAL">Critical</option><option value="WARNING">Warning</option></select></div>
+          <div id="alerts"></div><details><summary>Alert dates and rules</summary><div id="alert-table" class="scroll"></div></details></article>
+      </div>
+    </section>
+    <section id="attribution" class="domain">
+      <div class="domain-title"><h2>Marketing attribution</h2><p id="marketing-scope"></p></div>
+      <article class="card marketing"><div class="panel-head"><h3>Last-touch revenue by source</h3><span class="unit">THB</span></div>
+        <div id="marketing"></div><p class="note">ROAS divides attributed revenue by ad spend. Organic orders carry no spend. Daily joins pair platform-local ad dates with Bangkok order dates.</p></article>
+    </section>
+    <footer><h2>Snapshot scope</h2><p id="coverage"></p><p>Orders use the Bangkok business date. Settlement uses UTC. Boundary dates can contain a partial day. Refunds restate the original order date.</p><a href="data/snapshot.json">View aggregate JSON ↗</a></footer>
+  </div>
+</main>
+</body>
+</html>
