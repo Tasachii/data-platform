@@ -53,9 +53,11 @@ def rows(con, query):
 
 def snapshot(con):
     coverage = rows(con, """
-        SELECT table_name AS feed, min(file_date) AS start, max(file_date) AS finish,
+        -- Both payment sources share the existing public feed key.
+        SELECT CASE WHEN table_name = 'ledger_entries' THEN 'gateway_txns' ELSE table_name END AS feed,
+               min(file_date) AS start, max(file_date) AS finish,
                count(DISTINCT file_date) AS days
-        FROM meta.ingest_log WHERE table_name IN ('orders', 'gateway_txns', 'ad_performance')
+        FROM meta.ingest_log WHERE table_name IN ('orders', 'gateway_txns', 'ledger_entries', 'ad_performance')
         GROUP BY 1 ORDER BY 1
     """)
     # An undelivered ad file looks like zero spend after the mart's full join.

@@ -24,7 +24,7 @@ def _fmt(v) -> str:
         return f"{v:,.2f}"
     if isinstance(v, int):
         return f"{v:,}"
-    return str(v)
+    return "—" if v is None else str(v)
 
 
 def _md_table(headers: list[str], rows: list[tuple]) -> str:

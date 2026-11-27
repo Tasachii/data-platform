@@ -29,10 +29,12 @@ DDL = {
 
 
 def available_dates() -> list[date]:
-    dates = []
-    for f in sorted(RAW_DIR.glob("gateway_txns_*.csv")):
-        dates.append(date.fromisoformat(f.stem.removeprefix("gateway_txns_")))
-    return dates
+    dates = set()
+    for source in DDL:
+        prefix = f"{source}_"
+        for path in RAW_DIR.glob(f"{prefix}*.csv"):
+            dates.add(date.fromisoformat(path.stem.removeprefix(prefix)))
+    return sorted(dates)
 
 
 def ingest(dates: list[date]) -> None:
