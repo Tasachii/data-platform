@@ -264,20 +264,26 @@ def run_matching(con: duckdb.DuckDBPyConnection) -> None:
             FROM recon.recon_results GROUP BY txn_date
         )
         SELECT
-            g.txn_date,
-            g.gateway_count, g.gateway_amount,
-            COALESCE(l.ledger_count, 0)  AS ledger_count,
-            COALESCE(l.ledger_amount, 0) AS ledger_amount,
-            b.matched, b.fee_timing, b.rounding, b.amount_other,
-            b.possible_ref_issue, b.missing_in_ledger, b.missing_in_gateway,
-            b.duplicate_posting,
-            ROUND(100.0 * (b.matched + b.fee_timing + b.rounding + b.possible_ref_issue)
-                  / g.gateway_count, 2)                          AS match_rate_pct,
-            g.gateway_amount - COALESCE(l.ledger_amount, 0)      AS net_difference
+            coalesce(g.txn_date, l.txn_date) AS txn_date,
+            coalesce(g.gateway_count, 0) AS gateway_count,
+            coalesce(g.gateway_amount, 0) AS gateway_amount,
+            coalesce(l.ledger_count, 0) AS ledger_count,
+            coalesce(l.ledger_amount, 0) AS ledger_amount,
+            coalesce(b.matched, 0) AS matched,
+            coalesce(b.fee_timing, 0) AS fee_timing,
+            coalesce(b.rounding, 0) AS rounding,
+            coalesce(b.amount_other, 0) AS amount_other,
+            coalesce(b.possible_ref_issue, 0) AS possible_ref_issue,
+            coalesce(b.missing_in_ledger, 0) AS missing_in_ledger,
+            coalesce(b.missing_in_gateway, 0) AS missing_in_gateway,
+            coalesce(b.duplicate_posting, 0) AS duplicate_posting,
+            round(100.0 * (b.matched + b.fee_timing + b.rounding + b.possible_ref_issue)
+                  / nullif(g.gateway_count, 0), 2) AS match_rate_pct,
+            coalesce(g.gateway_amount, 0) - coalesce(l.ledger_amount, 0) AS net_difference
         FROM gateway_daily g
-        LEFT JOIN ledger_daily l USING (txn_date)
-        LEFT JOIN buckets b USING (txn_date)
-        ORDER BY g.txn_date
+        FULL JOIN ledger_daily l USING (txn_date)
+        LEFT JOIN buckets b ON b.txn_date = coalesce(g.txn_date, l.txn_date)
+        ORDER BY 1
     """)
 
 

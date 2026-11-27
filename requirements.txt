@@ -3,6 +3,7 @@
 # build — see ADR-004 / git history. Unpinned ranges let CI drift; these don't.)
 duckdb==1.5.4
 pandas==3.0.3
+numpy==2.4.6
 pytest==9.1.1
 ruff==0.15.20
 dbt-duckdb==1.10.1

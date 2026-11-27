@@ -5,11 +5,11 @@ with expected as (
 
     select
         p.category,
-        sum(li.qty * li.unit_price) as refunded_amount
+        sum(case when e.status = 'refunded' then li.qty * li.unit_price else 0 end) as refunded_amount
     from {{ ref('int_orders_enriched') }} e
     join {{ ref('stg_order_items') }} li on e.order_id = li.order_id
     join {{ ref('stg_products') }} p     on li.product_id = p.product_id
-    where e.status = 'refunded'
+    where e.status in ('paid', 'shipped', 'delivered', 'refunded')
     group by p.category
 
 ),

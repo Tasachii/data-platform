@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pipelines.orders.common import REPO_ROOT, connect, get_logger
+from pipelines.orders.common import REPORT_DIR, connect, get_logger
 
 log = get_logger("report")
 
-OUT_PATH = REPO_ROOT / "reports" / "sales_summary.md"
+OUT_PATH = REPORT_DIR / "sales_summary.md"
 
 
 def _md_table(headers: list[str], rows: list[tuple]) -> str:

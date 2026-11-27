@@ -10,6 +10,7 @@ import duckdb
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = Path(os.environ.get("PLATFORM_RAW_DIR", REPO_ROOT / "raw"))
+REPORT_DIR = Path(os.environ.get("PLATFORM_REPORT_DIR", REPO_ROOT / "reports"))
 WAREHOUSE_PATH = Path(os.environ.get("PLATFORM_DB", REPO_ROOT / "warehouse" / "platform.duckdb"))
 
 SCHEMAS = ["raw", "meta", "staging", "intermediate", "marts"]

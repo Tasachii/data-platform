@@ -6,12 +6,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pipelines.orders.common import REPO_ROOT, connect, get_logger
+from pipelines.orders.common import REPORT_DIR, connect, get_logger
 
 log = get_logger("recon.report")
 
-MD_PATH = REPO_ROOT / "reports" / "recon_summary.md"
-CSV_PATH = REPO_ROOT / "reports" / "recon_unmatched.csv"
+MD_PATH = REPORT_DIR / "recon_summary.md"
+CSV_PATH = REPORT_DIR / "recon_unmatched.csv"
 
 FOLLOW_UP_BUCKETS = (
     "missing_in_ledger", "missing_in_gateway", "amount_other",
@@ -34,6 +34,7 @@ def _md_table(headers: list[str], rows: list[tuple]) -> str:
 
 
 def main() -> None:
+    MD_PATH.parent.mkdir(parents=True, exist_ok=True)
     con = connect(read_only=True)
     summary = con.execute("""
         SELECT txn_date, gateway_count, ledger_count, matched,
@@ -81,7 +82,6 @@ def main() -> None:
         "`pipelines/reconciliation/README.md`.",
         "",
     ]
-    MD_PATH.parent.mkdir(parents=True, exist_ok=True)
     MD_PATH.write_text("\n".join(parts))
     log.info("wrote %s and %s (%d follow-ups)", MD_PATH, CSV_PATH, n_follow_up)
 

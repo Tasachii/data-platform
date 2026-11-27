@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -275,7 +276,7 @@ def main() -> None:
     parser.add_argument("--orders-per-day", type=int, default=20000)
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=date(2026, 6, 30))
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "raw")
+    parser.add_argument("--out-dir", type=Path, default=Path(os.environ.get("PLATFORM_RAW_DIR", REPO_ROOT / "raw")))
     args = parser.parse_args()
 
     manifest = generate(args.days, args.orders_per_day, args.end_date, args.seed, args.out_dir)

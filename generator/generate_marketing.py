@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -129,7 +130,7 @@ def generate(raw_dir: Path, end_date: date, days: int, seed: int) -> dict:
     }
     late_dir = raw_dir / "late_arrivals"
     late_dir.mkdir(exist_ok=True)
-    google_dup_days = set(str(d) for d in rng.choice(day_list, size=3, replace=False))
+    google_dup_days = set(str(d) for d in rng.choice(day_list, size=min(3, days), replace=False))
     totals = {"ad_rows": 0, "touches": len(touches)}
 
     for day in day_list:
@@ -253,7 +254,7 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=14)
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=None)
     parser.add_argument("--seed", type=int, default=44)
-    parser.add_argument("--raw-dir", type=Path, default=REPO_ROOT / "raw")
+    parser.add_argument("--raw-dir", type=Path, default=Path(os.environ.get("PLATFORM_RAW_DIR", REPO_ROOT / "raw")))
     args = parser.parse_args()
 
     end = args.end_date

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -51,7 +52,7 @@ def load_paid_orders(raw_dir: Path, start: date, end: date) -> pd.DataFrame:
     con = duckdb.connect()
     con.execute("SET timezone = 'UTC'")
     return con.execute(
-        f"""
+        """
         WITH parsed AS (
             SELECT
                 order_id,
@@ -59,7 +60,7 @@ def load_paid_orders(raw_dir: Path, start: date, end: date) -> pd.DataFrame:
                 TRY_CAST(updated_at AS TIMESTAMPTZ)      AS updated_at,
                 lower(trim(status))                      AS status,
                 TRY_CAST(total_amount AS DECIMAL(14, 2)) AS total_amount
-            FROM read_csv('{raw_dir}/orders_*.csv', all_varchar = true, header = true)
+            FROM read_csv(?, all_varchar = true, header = true)
         ),
         latest AS (
             SELECT * FROM parsed
@@ -69,9 +70,9 @@ def load_paid_orders(raw_dir: Path, start: date, end: date) -> pd.DataFrame:
         FROM latest
         WHERE status IN ('paid', 'shipped', 'delivered', 'refunded')
           AND total_amount IS NOT NULL AND total_amount > 0
-          AND CAST(timezone('UTC', order_ts) AS DATE) BETWEEN DATE '{start}' AND DATE '{end}'
-        ORDER BY order_ts
-        """
+          AND CAST(timezone('UTC', order_ts) AS DATE) BETWEEN ? AND ?
+        ORDER BY order_ts, order_id
+        """, [str(raw_dir / "orders_*.csv"), start, end]
     ).fetchdf()
 
 
@@ -224,7 +225,7 @@ def main() -> None:
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=None,
                         help="default: end_date of the orders manifest")
     parser.add_argument("--seed", type=int, default=43)
-    parser.add_argument("--raw-dir", type=Path, default=REPO_ROOT / "raw")
+    parser.add_argument("--raw-dir", type=Path, default=Path(os.environ.get("PLATFORM_RAW_DIR", REPO_ROOT / "raw")))
     args = parser.parse_args()
 
     end = args.end_date

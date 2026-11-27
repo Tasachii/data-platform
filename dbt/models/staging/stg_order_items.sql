@@ -1,4 +1,5 @@
-select distinct
+-- Ingest replaces the entire file. Identical lines inside an order still carry value.
+select
     order_id,
     product_id,
     try_cast(qty as integer)               as qty,

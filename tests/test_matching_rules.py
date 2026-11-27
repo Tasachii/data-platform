@@ -250,3 +250,15 @@ def test_unparseable_amounts_do_not_crash(bad_amount):
     con = make_con([g_row(amount=bad_amount)], [])
     run_matching(con)
     assert con.execute("SELECT count(*) FROM recon.recon_results").fetchone()[0] == 1
+
+
+def test_ledger_only_day_keeps_cash_and_triggers_gap_alert():
+    from pipelines.reconciliation.matching import evaluate_alerts
+
+    con = make_con([], [l_row(amount="12500.00")])
+    run_matching(con)
+    assert con.execute("""
+        SELECT gateway_count, ledger_count, missing_in_gateway, net_difference, match_rate_pct
+        FROM recon.recon_summary
+    """).fetchone() == (0, 1, 1, -12500, None)
+    assert [row[2] for row in evaluate_alerts(con)] == ["net_difference"]
