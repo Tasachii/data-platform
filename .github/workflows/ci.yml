@@ -40,6 +40,13 @@ jobs:
       - name: Run test suite
         run: pytest tests/ -v
 
+      - name: Check the public export after the late delivery
+        run: |
+          python pipelines/marketing/run_marketing.py --all --include-late
+          python scripts/export_dashboard.py --output "$RUNNER_TEMP/snapshot.json"
+          pytest -q tests/test_dashboard_export.py
+          node --check dashboard/app.js
+
   # Publishes the dbt docs site (lineage graph + catalog) to GitHub Pages.
   # Only runs after tests pass on main — PRs don't get pages/id-token
   # permissions and shouldn't publish docs before a merge.
