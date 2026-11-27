@@ -8,6 +8,8 @@ const baht = new Intl.NumberFormat("en-GB", {
 });
 const money = satang => baht.format(satang / 100);
 const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const dateRange = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const range = (start, end) => dateRange.formatRange(new Date(start + "T00:00:00Z"), new Date(end + "T00:00:00Z"));
 const day = iso => shortDate.format(new Date(iso + "T00:00:00Z"));
 const labels = {
   web: "Web store", shopee: "Shopee", lazada: "Lazada", facebook: "Facebook",
@@ -34,7 +36,7 @@ function groups(rows, field) {
 function period(rows) {
   if (!rows.length) return "No dates covered";
   const dates = rows.map(row => row.date).sort();
-  return dates[0] + " – " + dates.at(-1);
+  return range(dates[0], dates.at(-1));
 }
 
 function table(headers, values) {
@@ -135,15 +137,20 @@ function renderSales(rows) {
   const filtered = rows.filter(r => selected === "all" || selected === r.channel);
   const net = sum(filtered, "net");
   const refunds = sum(filtered, "refunds");
-  byId("net").textContent = money(net);
+  const bahtValue = net / 100;
+  const inMillions = Math.abs(bahtValue) >= 1_000_000;
+  byId("net").textContent = inMillions ? (bahtValue / 1_000_000).toFixed(2) : number.format(bahtValue);
+  byId("net-unit").textContent = inMillions ? "million baht" : "baht";
   byId("sales-scope").textContent = "Daily sales · Bangkok · " + period(filtered);
   byId("ledger").replaceChildren(pair("Gross sales", money(net + refunds), "ledger-line"),
-    pair("Refunds", money(refunds), "ledger-line"), pair("Net orders", number.format(sum(filtered, "orders")), "ledger-line"));
+    pair("Refunds", money(refunds), "ledger-line"), pair("Net revenue", money(net), "ledger-line net-total"),
+    pair("Net orders", number.format(sum(filtered, "orders")), "ledger-line"));
   const channels = byId("channels");
   channels.replaceChildren();
+  const allNet = sum(rows, "net");
   const totals = [...groups(rows, "channel")].map(([key, values]) => [key, sum(values, "net")]);
   for (const [key, value] of totals.sort((a, b) => b[1] - a[1])) {
-    const share = sum(rows, "net") ? value / sum(rows, "net") : 0;
+    const share = allNet ? value / allNet : 0;
     channels.append(pair(labels[key], (share * 100).toFixed(1) + "%", "channel-label"), rail(share));
   }
   const daily = [...groups(filtered, "date")].map(([date, values]) => ({
@@ -176,6 +183,11 @@ function renderPayments(rows, alerts) {
     line.append(element("span", day(row.date)), track, element("strong", money(row.gap)));
     gaps.append(line);
   }
+  if (rows.length) {
+    const legend = element("div", undefined, "gap-legend");
+    legend.append(element("span", "Ledger higher"), element("span", "Gateway higher"));
+    gaps.prepend(legend);
+  }
   if (!rows.length) gaps.append(element("p", "No settlement files cover this window.", "empty"));
   const severity = byId("severity").value;
   const filtered = alerts.filter(r => severity === "all" || r.severity === severity);
@@ -207,11 +219,20 @@ function renderMarketing(rows) {
     key, revenue: sum(items, "revenue"), orders: sum(items, "orders"), spend: sum(items, "spend")
   })).sort((a, b) => b.revenue - a.revenue);
   const peak = platforms[0].revenue;
-  const grid = table(["Source", "Attributed revenue", "Ad spend", "Net orders", "ROAS"], platforms.map(row => {
-    const label = element("div", labels[row.key]);
-    label.append(rail(peak ? row.revenue / peak : 0));
-    return [label, money(row.revenue), money(row.spend), number.format(row.orders), roas(row.revenue, row.spend)];
+  const headers = ["Source", "Credited revenue", "Ad spend", "Net orders", "ROAS"];
+  const grid = table(headers, platforms.map(row => {
+    const revenue = element("div", undefined, "credited");
+    revenue.append(element("strong", money(row.revenue)), rail(peak ? row.revenue / peak : 0));
+    return [labels[row.key], revenue, money(row.spend), number.format(row.orders), roas(row.revenue, row.spend)];
   }));
+  // Narrow screens stack each source's measures. Keep the same values and column headers.
+  for (const row of grid.tBodies[0].rows) {
+    for (const cell of Array.from(row.cells).slice(1)) {
+      const label = element("span", headers[cell.cellIndex], "mobile-label");
+      label.setAttribute("aria-hidden", "true");
+      cell.prepend(label);
+    }
+  }
   const scroll = element("div", undefined, "scroll");
   scroll.append(grid);
   panel.replaceChildren(scroll);
@@ -224,9 +245,15 @@ function start(data) {
   const channel = byId("channel");
   channel.add(new Option("All channels", "all"));
   for (const key of groups(data.sales, "channel").keys()) channel.add(new Option(labels[key], key));
-  const names = { orders: "Order", gateway_txns: "Payment", ad_performance: "Ad" };
-  byId("coverage").textContent = data.coverage.map(r =>
-    names[r.feed] + " files cover " + r.days + " days (" + period([{ date: r.start }, { date: r.finish }]) + ").").join(" ");
+  const feedNames = { orders: "Orders", gateway_txns: "Payments", ad_performance: "Ad spend" };
+  for (const [feed, label] of Object.entries(feedNames)) {
+    const coverage = data.coverage.find(row => row.feed === feed);
+    if (!coverage) continue;
+    const item = element("div");
+    const description = element("dd", range(coverage.start, coverage.finish));
+    item.append(element("dt", label + " · " + coverage.days + " source days"), description);
+    byId("coverage").append(item);
+  }
   const dates = [...new Set([...data.sales, ...data.reconciliation, ...data.marketing].map(r => r.date))].sort();
   const shift = (iso, count) => new Date(Date.parse(iso + "T00:00:00Z") + count * 86400000).toISOString().slice(0, 10);
   function render() {
@@ -237,7 +264,7 @@ function start(data) {
     renderSales(data.sales.filter(within));
     renderPayments(data.reconciliation.filter(within), data.alerts.filter(within));
     renderMarketing(data.marketing.filter(within));
-    byId("status").textContent = "Selected dates  ·  " + start + " – " + end + "   /   Thai baht (THB)";
+    byId("status").textContent = range(start, end) + "   ·   Thai baht (THB)";
   }
   for (const id of ["window", "channel", "severity"]) byId(id).addEventListener("change", render);
   render();

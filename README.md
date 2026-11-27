@@ -4,11 +4,13 @@ I built this project to understand what happens to a sales report when a shop ge
 
 [Open the live commerce dashboard](https://data-platform-amber.vercel.app/)
 
-The dashboard uses **60,000 simulated orders** from June 1–30, 2026 (2,000 per day). Of those, 52,232 were paid, shipped or delivered after accounting for refunds, for **฿580,142,258.41 in net sales**. Try the last seven days to compare sales with payment alerts and ad spend. Payment files cover the last seven source days and ad files the last fourteen. Some orders and settlements fall on July 1 because sales use Bangkok dates and payments use UTC settlement dates.
+Siam Dispatch follows **60,000 simulated orders** from June 1–30, 2026 (2,000 per day). The full snapshot shows **580.14 million baht** in net revenue. **Sales breakdown** gives the exact amount, ฿580,142,258.41, from 52,232 paid, shipped or delivered orders. Select a bar for one day’s sales, or open **Daily figures** to see the amounts and refunds side by side.
+
+Choose **Last 7 days** to compare sales, payment alerts and ad spend over the same dates. The settlement chart shows which side recorded more money each day. Under **Marketing attribution**, each source’s credited revenue sits alongside its ad spend. **Snapshot scope** lists the dates for all three feeds, covering 30 days of orders, 7 of payments and 14 of ads. Order and settlement activity extends into July 1 because the reports use Bangkok order dates and UTC settlement dates.
 
 | Sales and refunds | Payments and marketing |
 |---|---|
-| ![Daily net sales and sales by channel](docs/images/commerce-overview.png) | ![Settlement gaps, payment alerts and revenue credited to each marketing source](docs/images/settlement-and-attribution.png) |
+| ![Daily sales chart with net revenue in millions of baht and the exact total in Sales breakdown](docs/images/commerce-overview.png) | ![Daily gateway and ledger gaps, alerts by severity, and credited revenue alongside ad spend](docs/images/settlement-and-attribution.png) |
 
 ## How to read the numbers
 
@@ -48,6 +50,6 @@ Open `warehouse/platform.duckdb` to try the [example queries](pipelines/orders/e
 
 ## Verification
 
-After building a warehouse, run `python -m pytest -q tests/`. All 81 cases passed on the published 30-day sample. The three-day CI sample skips one check that needs eight days of history. CI also opens the dashboard in Chromium and checks its filters and empty states. [CI results](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
+After building a warehouse, run `python -m pytest -q tests/`. All 81 cases passed on the published 30-day sample. The three-day CI sample skips one check that needs eight days of history. CI also checks the dashboard in Chromium at desktop and phone widths, including exact amounts, keyboard selection, filters and dates with no payment or marketing data. [CI results](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
 
 [MIT license](LICENSE) © 2026 Phasathat Jaruchitsophon

@@ -19,7 +19,7 @@
 </div></header>
 <main id="main">
   <section class="intro">
-    <div><div class="tag"><i></i>Synthetic data</div><h1>Commerce overview</h1><p>Orders, payments and ad performance across a simulated Thai retailer.</p></div>
+    <div><div class="tag"><i></i>Synthetic data</div><h1>Commerce overview</h1><p>Orders, payments and ad performance for a simulated Thai retailer.</p></div>
     <label class="control">Reporting window<select id="window" disabled><option value="all">Full snapshot</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="first">First 7 days</option></select></label>
   </section>
   <p id="status" role="status">Loading warehouse snapshot…</p><noscript>Enable JavaScript to explore the report.</noscript>
@@ -27,7 +27,7 @@
     <section id="sales" class="sales-layout" aria-label="Order sales">
       <article class="trend">
         <div class="panel-head"><div><span class="kicker">Sales performance</span><h2>Net revenue</h2></div><label class="sr" for="channel">Sales channel</label><select id="channel" aria-label="Sales channel"></select></div>
-        <strong class="headline" id="net"></strong>
+        <p class="headline"><strong id="net"></strong> <span id="net-unit"></span></p>
         <div class="scope" id="sales-scope"></div>
         <div class="chart" id="trend"></div>
         <div class="inspect" id="inspect" aria-live="polite"></div>
@@ -36,7 +36,7 @@
       <article class="card ledger">
         <span class="kicker">Order ledger</span><h2>Sales breakdown</h2>
         <div id="ledger"></div>
-        <h3>Share across all channels</h3><div id="channels"></div>
+        <h3>Share of net revenue · all channels</h3><div id="channels"></div>
       </article>
     </section>
     <section id="payments" class="domain">
@@ -50,10 +50,14 @@
     </section>
     <section id="attribution" class="domain">
       <div class="domain-title"><h2>Marketing attribution</h2><p id="marketing-scope"></p></div>
-      <article class="card marketing"><div class="panel-head"><h3>Last-touch revenue by source</h3><span class="unit">THB</span></div>
-        <div id="marketing"></div><p class="note">ROAS divides attributed revenue by ad spend. Organic orders carry no spend. Daily joins pair platform-local ad dates with Bangkok order dates.</p></article>
+      <article class="card marketing"><div class="panel-head"><h3>Revenue credited to each source</h3><span class="unit">THB</span></div>
+        <div id="marketing"></div><p class="note">Each eligible order credits one source. Return on ad spend (ROAS) divides credited revenue by spend and excludes organic orders from the paid-channel total.</p></article>
     </section>
-    <footer><h2>Snapshot scope</h2><p id="coverage"></p><p>Orders use the Bangkok business date. Settlement uses UTC. Boundary dates can contain a partial day. Refunds restate the original order date.</p><a href="data/snapshot.json">View aggregate JSON ↗</a></footer>
+    <footer>
+      <div class="panel-head"><h2>Snapshot scope</h2><a href="data/snapshot.json">View aggregate JSON ↗</a></div>
+      <dl id="coverage" aria-label="Source file coverage"></dl>
+      <p>Orders use Bangkok dates, settlements use UTC and ads use each platform’s local dates. The first and last reporting days can be partial. Refunds reduce sales on the original order date.</p>
+    </footer>
   </div>
 </main>
 </body>

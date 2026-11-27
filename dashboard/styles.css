@@ -107,7 +107,7 @@ header {
 }
 
 .intro {
-  padding: 42px 0 24px;
+  padding: 32px 0 18px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -146,7 +146,7 @@ h1,.domain-title h2,footer h2 {
 }
 
 h1 {
-  font-size: clamp(40px,5vw,70px);
+  font-size: clamp(40px,4.6vw,62px);
   line-height: 1.08;
   margin: 9px 0;
 }
@@ -236,9 +236,12 @@ select {
 }
 
 .headline {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .18em;
   font-family: var(--serif);
-  font-size: clamp(37px,4.7vw,70px);
+  font-size: clamp(36px,4vw,56px);
   font-weight: 400;
   letter-spacing: -.045em;
   line-height: 1.1;
@@ -254,7 +257,7 @@ select {
 }
 
 .plot {
-  height: 125px;
+  height: 150px;
   display: flex;
   gap: 2px;
   align-items: stretch;
@@ -296,6 +299,7 @@ select {
 .inspect {
   min-height: 1.6em;
   color: #ffdda4;
+  padding: 6px 0 2px;
 }
 
 .trend details {
@@ -343,7 +347,7 @@ summary {
 }
 
 .ledger-line {
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--line);
   font-size: 14px;
 }
@@ -409,7 +413,8 @@ summary {
   gap: 10px;
   align-items: center;
   font-size: 12px;
-  margin-top: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .gap-line strong {
@@ -487,9 +492,22 @@ th:first-child,td:first-child {
   text-align: left;
 }
 
-.marketing .rail {
-  max-width: 95px;
-  margin: 4px 0;
+.credited .rail {
+  width: min(100%, 8rem);
+  height: 4px;
+  margin: 4px 0 0 auto;
+}
+
+.marketing td:first-child {
+  font-weight: 650;
+}
+
+.marketing tbody tr:hover {
+  background: var(--paper);
+}
+
+.mobile-label {
+  display: none;
 }
 
 .marketing .note {
@@ -633,6 +651,145 @@ footer p,footer a {
   display: grid;
   grid-template-columns: 44px minmax(0,1fr);
   gap: 4px;
+}
+
+#net {
+  font-weight: 400;
+}
+
+#net-unit {
+  font: 500 clamp(16px,1.6vw,22px)/1.2 var(--sans);
+  color: #c9e5dd;
+  letter-spacing: -.02em;
+}
+
+.net-total {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.net-total span {
+  color: inherit;
+}
+
+.gap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.gap-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 5px;
+  margin-right: 5px;
+  vertical-align: middle;
+  background: var(--orange);
+}
+
+.gap-legend span + span::before {
+  background: var(--teal);
+}
+
+#alerts .alert-line {
+  border: 0;
+  padding: 4px 0;
+}
+
+#alerts .alert-line:has(.warning) + .rail i {
+  background: #987034;
+}
+
+#alerts .alert-line:has(.critical) + .rail i {
+  background: #a34e39;
+}
+
+#coverage {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+#coverage > div {
+  background: #f9fbf9;
+  padding: 13px 16px;
+}
+
+#coverage dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#coverage dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+@media(max-width:560px) {
+  #coverage {
+    grid-template-columns: 1fr;
+  }
+
+  #coverage > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+  }
+
+  .marketing table, .marketing tbody {
+    display: block;
+  }
+
+  .marketing thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .marketing tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .marketing td {
+    text-align: left;
+    border: 0;
+    padding: 0;
+  }
+
+  .marketing td:first-child {
+    grid-column: 1/-1;
+    font-size: 15px;
+  }
+
+  .mobile-label {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .credited .rail {
+    margin-left: 0;
+  }
+
+  select {
+    min-height: 44px;
+  }
 }
 
 .y-scale {
