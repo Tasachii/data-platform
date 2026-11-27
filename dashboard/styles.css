@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/IBMPlexMono-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
+}
+
 :root {
   --ink: #183837;
   --teal: #16665d;
@@ -9,6 +25,7 @@
   --orange: #b6532a;
   --serif: "Instrument Serif",Georgia,serif;
   --sans: Inter,"Avenir Next",system-ui,sans-serif;
+  --numbers: "IBM Plex Mono","Avenir Next",ui-monospace,monospace;
 }
 
 * {
@@ -419,7 +436,7 @@ summary {
 
 .gap-line strong {
   text-align: right;
-  font-weight: 560;
+  font-weight: 500;
 }
 
 .gap-track {
@@ -441,8 +458,11 @@ summary {
 }
 
 .metric {
-  font: 400 44px/1.2 var(--serif);
-  letter-spacing: -.05em;
+  font: 500 42px/1.2 var(--numbers);
+  font-synthesis: none;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1,"tnum" 1;
+  letter-spacing: -.055em;
 }
 
 .summary-stat {
@@ -508,6 +528,8 @@ th:first-child,td:first-child {
 
 .mobile-label {
   display: none;
+  font-family: var(--sans);
+  letter-spacing: normal;
 }
 
 .marketing .note {
@@ -654,7 +676,12 @@ footer p,footer a {
 }
 
 #net {
-  font-weight: 400;
+  font-family: var(--numbers);
+  font-weight: 500;
+  font-synthesis: none;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1,"tnum" 1;
+  letter-spacing: -.055em;
 }
 
 #net-unit {
@@ -664,8 +691,22 @@ footer p,footer a {
 }
 
 .net-total {
-  font-weight: 700;
   color: var(--teal);
+}
+
+.ledger-line strong,.channel-label strong,.gap-line strong,
+.alert-line strong,.credited strong,.trend td:not(:first-child),
+.marketing td:not(:first-child) {
+  font-family: var(--numbers);
+  font-synthesis: none;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1,"tnum" 1;
+  letter-spacing: -.025em;
+}
+
+.ledger-line strong,.channel-label strong,.alert-line strong,.credited strong,
+.trend td:not(:first-child),.marketing td:not(:first-child) {
+  font-weight: 600;
 }
 
 .net-total span {

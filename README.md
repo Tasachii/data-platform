@@ -1,16 +1,16 @@
-# Thai commerce data platform
+# Siam Commerce
 
 I built this project to understand what happens to a sales report when a shop gets a late refund, a payment gateway disagrees with the ledger, or an ad file arrives a day late. I generated the orders, payments and ad records for one fictional Thai retailer so I could follow the same sales through all three reports.
 
 [Open the live commerce dashboard](https://data-platform-amber.vercel.app/)
 
-Siam Dispatch follows **60,000 simulated orders** from June 1–30, 2026 (2,000 per day). The full snapshot shows **580.14 million baht** in net revenue. **Sales breakdown** gives the exact amount, ฿580,142,258.41, from 52,232 paid, shipped or delivered orders. Select a bar for one day’s sales, or open **Daily figures** to see the amounts and refunds side by side.
+Siam Commerce follows **60,000 simulated orders** from June 1–30, 2026 (2,000 per day). The full snapshot shows **580.14 million baht** in net revenue. **Sales breakdown** gives the exact amount, ฿580,142,258.41, from 52,232 paid, shipped or delivered orders. Select a bar for one day’s sales, or open **Daily figures** to see the amounts and refunds side by side.
 
 Choose **Last 7 days** to compare sales, payment alerts and ad spend over the same dates. The settlement chart shows which side recorded more money each day. Under **Marketing attribution**, each source’s credited revenue sits alongside its ad spend. **Snapshot scope** lists the dates for all three feeds, covering 30 days of orders, 7 of payments and 14 of ads. Order and settlement activity extends into July 1 because the reports use Bangkok order dates and UTC settlement dates.
 
 | Sales and refunds | Payments and marketing |
 |---|---|
-| ![Daily sales chart with net revenue in millions of baht and the exact total in Sales breakdown](docs/images/commerce-overview.png) | ![Daily gateway and ledger gaps, alerts by severity, and credited revenue alongside ad spend](docs/images/settlement-and-attribution.png) |
+| ![Siam Commerce daily sales chart with an aligned 580.14 million baht headline and exact totals](docs/images/commerce-overview.png) | ![Payment gaps, alerts and marketing values aligned with fixed-width financial numerals](docs/images/settlement-and-attribution.png) |
 
 ## How to read the numbers
 
@@ -52,4 +52,4 @@ Open `warehouse/platform.duckdb` to try the [example queries](pipelines/orders/e
 
 After building a warehouse, run `python -m pytest -q tests/`. All 81 cases passed on the published 30-day sample. The three-day CI sample skips one check that needs eight days of history. CI also checks the dashboard in Chromium at desktop and phone widths, including exact amounts, keyboard selection, filters and dates with no payment or marketing data. [CI results](https://github.com/Tasachii/data-platform/actions/workflows/ci.yml)
 
-[MIT license](LICENSE) © 2026 Phasathat Jaruchitsophon
+[MIT license](LICENSE) © 2026 Phasathat Jaruchitsophon. IBM Plex Mono is included under the [SIL Open Font License 1.1](dashboard/fonts/OFL.txt).

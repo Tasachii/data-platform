@@ -1,6 +1,7 @@
 """Exercise the checked-in public snapshot in a real headless browser."""
 
 import json
+import re
 from decimal import Decimal
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -25,9 +26,37 @@ def check_sales_total(page, rows):
     expect(page.locator(".net-total strong")).to_be_visible()
 
 
+def check_number_type(page):
+    page.evaluate("async () => { await document.fonts.ready; }")
+    expect(page.locator("#net")).to_have_css("font-family", re.compile("IBM Plex Mono"))
+    assert page.evaluate("document.fonts.check('500 42px \\\"IBM Plex Mono\\\"')")
+    digit_widths = page.locator("#net").evaluate(
+        """target => {
+          const sample = document.createElement("span");
+          const style = getComputedStyle(target);
+          sample.style.cssText = `position:fixed;left:-10000px;white-space:nowrap;
+            font:${style.font};font-family:${style.fontFamily};font-variant-numeric:${style.fontVariantNumeric};
+            font-feature-settings:${style.fontFeatureSettings};letter-spacing:${style.letterSpacing}`;
+          document.body.append(sample);
+          const widths = [..."0123456789"].map(digit => {
+            sample.textContent = digit.repeat(6);
+            return sample.getBoundingClientRect().width;
+          });
+          sample.remove();
+          return widths;
+        }"""
+    )
+    assert max(digit_widths) - min(digit_widths) < 0.1, digit_widths
+    gap_right_edges = page.locator(".gap-line strong").evaluate_all(
+        "nodes => nodes.map(node => node.getBoundingClientRect().right)"
+    )
+    assert max(gap_right_edges) - min(gap_right_edges) < 0.1, gap_right_edges
+
+
 def check_report(page, data):
     sales = data["sales"]
     check_sales_total(page, sales)
+    check_number_type(page)
     first = [r for r in sales if r["date"] == sales[0]["date"]]
     daily_net = money(sum(r["net"] for r in first))
     bars = page.locator("#trend button")
@@ -82,7 +111,7 @@ def main():
             browser = playwright.chromium.launch()
             errors = []
             url = f"http://127.0.0.1:{server.server_port}/"
-            for width, height in [(1400, 940), (375, 812)]:
+            for width, height in [(1440, 940), (390, 844), (320, 720)]:
                 page = browser.new_page(viewport={"width": width, "height": height})
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.goto(url)
