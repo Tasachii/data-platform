@@ -47,6 +47,21 @@ jobs:
           pytest -q tests/test_dashboard_export.py
           node --check dashboard/app.js
 
+  dashboard-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Playwright and headless Chromium
+        run: |
+          python -m pip install playwright==1.60.0
+          python -m playwright install --with-deps --only-shell chromium
+      - name: Exercise the public snapshot
+        run: python scripts/smoke_dashboard.py
+
   # Publishes the dbt docs site (lineage graph + catalog) to GitHub Pages.
   # Only runs after tests pass on main — PRs don't get pages/id-token
   # permissions and shouldn't publish docs before a merge.
