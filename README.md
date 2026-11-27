@@ -66,7 +66,7 @@ The local Docker Compose stack runs Airflow 2.10.5 with Postgres metadata. Gener
 docker compose up -d
 ```
 
-The local Airflow UI is at `http://localhost:8080`. The three daily DAGs are [orders_daily](dags/orders_daily.py), [recon_daily](dags/recon_daily.py) and [marketing_daily](dags/marketing_daily.py). Each DAG caps its own active runs at one. Schedule warehouse writes sequentially across DAGs because DuckDB permits one writer process at a time.
+The demo binds the Airflow UI to `http://127.0.0.1:8080` on host loopback. The three daily DAGs are [orders_daily](dags/orders_daily.py), [recon_daily](dags/recon_daily.py) and [marketing_daily](dags/marketing_daily.py). Each DAG caps its own active runs at one. Schedule warehouse writes sequentially across DAGs because DuckDB permits one writer process at a time.
 
 For Vercel, use **dashboard** as the project root and serve its static files. GitHub Pages has a separate workflow for the dbt catalog and lineage. [Publication handoff](PUBLICATION_HANDOFF.md)
 
