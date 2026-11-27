@@ -54,9 +54,8 @@ def _ensure_tables(con: duckdb.DuckDBPyConnection) -> None:
 def _log_load(
     con: duckdb.DuckDBPyConnection, file_name: str, table: str, file_date: date | None, rows: int
 ) -> None:
-    con.execute("DELETE FROM meta.ingest_log WHERE file_name = ?", [file_name])
     con.execute(
-        "INSERT INTO meta.ingest_log VALUES (?, ?, ?, now(), ?)",
+        "INSERT OR REPLACE INTO meta.ingest_log VALUES (?, ?, ?, now(), ?)",
         [file_name, table, file_date, rows],
     )
 

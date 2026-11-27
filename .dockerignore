@@ -1,0 +1,5 @@
+# DAGs and pipeline source are bind-mounted by Compose at runtime.
+*
+!Dockerfile
+!requirements-airflow.txt
+!requirements-dbt-airflow.txt
