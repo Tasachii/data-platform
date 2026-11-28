@@ -11,7 +11,7 @@
 
 ## ปัญหา: ข้อมูลไม่ได้มาเรียงตามเวลา และไม่ได้มาครั้งเดียว
 
-ในโปรเจกต์ [Siam Commerce](https://github.com/Tasachii/Data-Platform) ผมจำลองร้าน e-commerce
+ในโปรเจกต์ [Siam Commerce](https://github.com/Tasachii/Siam-Commerce) ผมจำลองร้าน e-commerce
 ที่มี order วันละ ~20,000 รายการ พร้อมความสกปรกแบบที่ source จริงเป็น:
 
 - 3% ของ order ถูก refund ย้อนหลัง 1–7 วัน (มาเป็นแถวใหม่ในไฟล์ของวันหลัง)
@@ -80,5 +80,5 @@ order ปกติมีแถวเดียว (`delivered`, is_current=true) 
    ของความสกปรกทุกแถว แล้วให้ test suite พิสูจน์ recall 100%
 4. รัน pipeline สองรอบแล้ว diff — สิ่งที่ "กะพริบ" คือครูที่ดีที่สุด
 
-โค้ด pipeline, dbt models, Airflow DAGs และชุดทดสอบอยู่ใน repo `data-platform` ครับ
+โค้ด pipeline, dbt models, Airflow DAGs และชุดทดสอบอยู่ใน repo `Siam-Commerce` ครับ
 ดูจำนวนเคสและผลทดสอบล่าสุดได้ที่ [หัวข้อ Verification ใน README](../../README.md#verification)

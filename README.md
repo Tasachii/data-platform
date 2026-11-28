@@ -50,6 +50,6 @@ Open `warehouse/platform.duckdb` to try the [example queries](pipelines/orders/e
 
 ## Verification
 
-After building a warehouse, run `python -m pytest -q tests/`. All 81 cases passed on the published 30-day sample. The three-day CI sample skips one check that needs eight days of history. CI also checks the dashboard in Chromium at desktop and phone widths, including exact amounts, keyboard selection, filters and dates with no payment or marketing data. [CI results](https://github.com/Tasachii/Data-Platform/actions/workflows/ci.yml)
+After building a warehouse, run `python -m pytest -q tests/`. All 81 cases passed on the published 30-day sample. The three-day CI sample skips one check that needs eight days of history. CI also checks the dashboard in Chromium at desktop and phone widths, including exact amounts, keyboard selection, filters and dates with no payment or marketing data. [CI results](https://github.com/Tasachii/Siam-Commerce/actions/workflows/ci.yml)
 
 [MIT license](LICENSE) © 2026 Phasathat Jaruchitsophon. IBM Plex Mono is included under the [SIL Open Font License 1.1](dashboard/fonts/OFL.txt).

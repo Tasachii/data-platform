@@ -10,7 +10,7 @@ Two candidate structures: one repo per pipeline vs. a single platform repo.
 
 ## Decision
 
-Single platform repo (`data-platform`) containing multiple pipelines that share
+Single platform repo (`Siam-Commerce`) containing multiple pipelines that share
 one warehouse, one orchestrator, and one CI setup. Delivery is phased:
 
 1. **Phase 1** — orders pipeline as plain Python + SQL (learn the logic first)
